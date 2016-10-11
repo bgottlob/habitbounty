@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h4>Welcome to the home page file</h4>
+  <h5>Your habits:</h5>
+  <ul>
+    {{#each this}}
+    <li>
+      <h5>{{name}}</h5>
+      <p>Reward: ${{reward}}</p>
+      <input type="checkbox" />
+    </li>
+    {{/each}}
+  </ul>
+</body>
+</html>
