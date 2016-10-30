@@ -15,6 +15,7 @@
   "homepage": "https://bitbucket.org/bgottlob/habitbounty#readme",
   "dependencies": {
     "cradle": "^0.7.1",
-    "handlebars": "^4.0.5"
+    "handlebars": "^4.0.5",
+    "pouchdb": "^6.0.6"
   }
 }

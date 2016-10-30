@@ -1,0 +1,8 @@
+{
+  "type":"habit",
+  "name":"Go for a walk",
+  "timing": {
+    "days_to_complete": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+  },
+  "reward": 1
+}
