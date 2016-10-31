@@ -14,7 +14,7 @@
   "license": "Apache-2.0",
   "homepage": "https://bitbucket.org/bgottlob/habitbounty#readme",
   "dependencies": {
-    "cradle": "^0.7.1",
+    "ecstatic": "^2.1.0",
     "handlebars": "^4.0.5",
     "pouchdb": "^6.0.6"
   }

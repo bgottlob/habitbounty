@@ -1,6 +1,5 @@
 var loader = module.exports;
 
-const cradle = require('cradle');
 const PouchDB = require('pouchdb');
 
 const url = 'http://localhost';
@@ -14,30 +13,8 @@ var db = new PouchDB(url + ':' + port + '/habitbounty', {
 });
 
 
-loader.all_habits = function(callback) {
-  var resList = [];
-  db.view('hb-couch/all-habits', (err, res) => {
-    if (err)
-      console.log('Could not get the view, log it');
-
-    res.forEach((row) => {
-      resList.push(row);
-    });
-
-    console.log(resList);
-    console.log(callback);
-    callback(err, resList);
-  });
-};
-
-const map = function(doc) {
-  if (doc.type === 'habit') {
-    emit(doc._id, { name: doc.name, timing: doc.timing, reward: doc.reward });
-  }
-};
-
-loader.pouch_all_habits = function(callback) {
-  db.query('hb-couch/all-habits').then((result) => {
+loader.allHabits = (callback) => {
+  db.query('queries/all_habits').then((result) => {
     resList = [];
     result.rows.forEach((row) => {
       resList.push(row.value);
@@ -47,3 +24,49 @@ loader.pouch_all_habits = function(callback) {
     console.log(err);
   });
 };
+
+const mapAllHabits = function(doc) {
+  if (doc.type === 'habit') {
+    emit(doc._id, { name: doc.name, timing: doc.timing, reward: doc.reward });
+  }
+};
+
+var designDocId = '_design/queries';
+var designDoc = {
+  _id: designDocId,
+  views: {
+    all_habits: {
+      map: mapAllHabits.toString()
+    }
+  }
+};
+
+pushDesignDoc = () => {
+  db.get(designDocId, (err, doc) => {
+    if (err) {
+      if (err.error === 'not_found') {
+        /* Design doc doesn't exist, create it */
+        db.put(designDoc, (err, response) => {
+          if (err)
+            console.log(err);
+          else
+            console.log('The design doc ' + '"' + designDocId +
+                        '" has been created!');
+        });
+      }
+      else
+        console.log(err);
+    } else {
+      /* Design doc exists, get the revision number and push the updated doc */
+      designDoc._rev = doc._rev;
+      db.put(designDoc, (err, response) => {
+        if (err) console.log(err);
+        else
+          console.log('The design doc ' + '"' + designDocId +
+                      '" has been updated!');
+      });
+    }
+  });
+}
+
+pushDesignDoc();

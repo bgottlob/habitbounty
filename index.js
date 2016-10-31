@@ -2,9 +2,11 @@ const http = require('http');
 const fs = require('fs');
 const Handlebars = require('handlebars');
 const loader = require('./modules/dataLoader.js');
-const Router = require('./router.js')
+const Router = require('./modules/router.js')
+const ecstatic =  require('ecstatic');
 
 var router = new Router();
+var fileServer = ecstatic({root: './public'});
 
 router.add('GET', /\//, (request, response) => {
   var path = 'views/index.html';
@@ -19,7 +21,7 @@ router.add('GET', /\//, (request, response) => {
       });
       fileStream.on('end', () => {
         var template = Handlebars.compile(htmlString);
-        loader.pouch_all_habits((resList) => {
+        loader.allHabits((resList) => {
           if (err)
             response.statusCode = 404;
           console.log('This is the res list in the callback');
@@ -34,9 +36,6 @@ router.add('GET', /\//, (request, response) => {
 
 http.createServer(function(request, response) {
   if (!router.resolve(request, response)) {
-    response.statusCode = 404;
-    response.end('Route not found');
+    fileServer(request, response);
   }
 }).listen(8080);
-
-
