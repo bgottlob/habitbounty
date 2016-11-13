@@ -34,8 +34,23 @@ router.add('GET', /\//, (request, response) => {
   });
 });
 
+router.add('POST', /\/habit/, (request, response) => {
+  console.log(request.body);
+  loader.createHabit(request.body.title, request.body.reward);
+});
+
 http.createServer(function(request, response) {
-  if (!router.resolve(request, response)) {
-    fileServer(request, response);
-  }
+  var body = [];
+  request.on('data', (chunk) => {
+    body.push(chunk);
+  }).on('end', () => {
+    if (body.length > 0) {
+      console.log('tryna parse');
+      body = Buffer.concat(body).toString();
+      request.body = JSON.parse(body);
+    }
+    if (!router.resolve(request, response)) {
+      fileServer(request, response);
+    }
+  });
 }).listen(8080);

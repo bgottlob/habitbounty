@@ -12,22 +12,36 @@ var db = new PouchDB(url + ':' + port + '/habitbounty', {
   }
 });
 
+loader.createHabit = (title, reward, callback) => {
+  db.post({ type: 'habit', title: title, reward: reward }, (err, response) => {
+    if (err) console.log(err);
+    else console.log('Habit was created!!');
+  });
+};
+
+loader.getHabit = (docId, callback) => {
+  db.get(docId, (err, doc) => {
+    if (err) console.log(err);
+    else callback(doc);
+  });
+};
 
 loader.allHabits = (callback) => {
-  db.query('queries/all_habits').then((result) => {
-    resList = [];
-    result.rows.forEach((row) => {
-      resList.push(row.value);
-    });
-    callback(resList);
-  }).catch((err) => {
-    console.log(err);
+  db.query('queries/all_habits', (err, result) => {
+    if (err) console.log(err);
+    else {
+      resList = [];
+      result.rows.forEach((row) => {
+        resList.push(row.value);
+      });
+      callback(resList);
+    }
   });
 };
 
 const mapAllHabits = function(doc) {
   if (doc.type === 'habit') {
-    emit(doc._id, { name: doc.name, timing: doc.timing, reward: doc.reward });
+    emit(doc._id, { title: doc.title, reward: doc.reward });
   }
 };
 
