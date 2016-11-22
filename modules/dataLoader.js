@@ -1,6 +1,7 @@
 var loader = module.exports;
 
 const PouchDB = require('pouchdb');
+const Habit = require('./habit.js');
 
 const url = 'http://localhost';
 const port = 5984;

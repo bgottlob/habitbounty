@@ -25,11 +25,31 @@ Habit.prototype.complete = function() {
     this.log.push(moment());
 };
 
+/* Returns an object that is ready to be placed into the db as a document */
+Habit.prototype.toDoc = function() {
+  return {
+    name: this.name,
+    reward: this.reward,
+    log: encodeLog(this.log)
+  };
+}
+
+/* Encodes moments into arrays of UTC timestamps */
+function encodeLog(log) {
+  return log.map((mDate) => {
+    /* Set flag on the moment to use UTC in the following calls */
+    mDate.utc();
+    return [mDate.year(), mDate.month(), mDate.date(), mDate.hour(), mDate.minute()];
+  });
+}
+
+/* Decodes arrays of UTC timestamps into moments */
+function decodeLog(log) {
+  return log.map((utcArr) => {
+    moment.utc(utcArr).local();
+  });
+}
+
 var hab = new Habit("blah", 2);
 hab = new Habit();
-console.log(hab);
-console.log(hab.isComplete());
 hab.complete();
-console.log(hab.isComplete());
-hab.complete();
-console.log(hab);
