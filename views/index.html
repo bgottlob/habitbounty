@@ -1,17 +1,43 @@
 <!DOCTYPE html>
 <html>
-<body>
-  <h4>Welcome to the home page file</h4>
-  <h5>Your habits:</h5>
-  <ul>
-    <p>You have {{this.length}} habits</p>
-    {{#each this}}
-    <li>
-      <h5>{{title}}</h5>
-      <p>Reward: ${{reward}}</p>
-      <input type="checkbox" />
-    </li>
-    {{/each}}
-  </ul>
-</body>
+  <head>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+
+    <!-- CSS Reset - not sure what this actually does but milligram needs it-->
+    <link rel="stylesheet" href="../node_modules/normalize.css/normalize.css">
+
+    <!-- Milligram CSS minified -->
+    <link rel="stylesheet" href="../node_modules/milligram/dist/milligram.min.css">
+
+    <title>HabitBounty</title>
+
+  </head>
+  <body>
+    <div class="container">
+      <h2>Your daily habits:</h2>
+      <table>
+        <tbody>
+          <tr>
+            <td>
+              <form action="api-call-here">
+                <input type="checkbox" name="completed" value="completed"/>
+              </form>
+            </td>
+            <td>Cook dinner</td>
+            <td>$0.35</td>
+          </tr>
+          <tr>
+            <td>
+              <form action="api-call-here">
+                <input type="checkbox" name="completed" value="completed"/>
+              </form>
+            </td>
+            <td>Walk the dog</td>
+            <td>$1.35</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
 </html>
