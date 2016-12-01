@@ -35,14 +35,14 @@ loader.createHabit = function(habit) {
 
 loader.getHabit = (docId, callback) => {
   db.get(docId, (err, doc) => {
-    if (err) return console.log(err);
-    else return callback(doc);
+    if (err) callback(err)
+    else return callback(null, doc);
   });
 };
 
 loader.allHabits = (callback) => {
   db.query('queries/all_habits', (err, result) => {
-    if (err) return console.log(err);
+    if (err) return callback(err);
     else {
       resList = [];
       result.rows.forEach((row) => {
@@ -51,7 +51,7 @@ loader.allHabits = (callback) => {
         habit.id = row.id;
         resList.push(habit);
       });
-      return callback(resList);
+      return callback(null, resList);
     }
   });
 };
@@ -108,4 +108,4 @@ habs[0].complete();
 habs[2].complete();
 habs.forEach((hab) => { loader.createHabit(hab) });
 */
-loader.allHabits(console.log);
+//loader.allHabits(console.log);
