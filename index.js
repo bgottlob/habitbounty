@@ -3,6 +3,7 @@ const loader = require('./modules/dataLoader.js');
 const Router = require('./modules/router.js')
 const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
+const Habit = require('./modules/habit.js');
 
 var router = new Router();
 var fileServer = ecstatic({root: __dirname + '/public'});
@@ -35,9 +36,20 @@ router.add('GET', /^\/$/, (request, response) => {
   });
 });
 
-router.add('POST', /^\/habit/, (request, response) => {
-  console.log(request.body);
-  loader.createHabit(request.body.title, request.body.reward);
+router.add('POST', /^\/habit$/, (request, response) => {
+  /* TODO: Catch potential issue -- name and reward must be present in
+   * request -- maybe even find spurious attributes in JSON */
+  const habit = new Habit(request.body.name, request.body.reward);
+  loader.createHabit(habit, (err, result) => {
+    if (err) {
+      response.statusCode = 400;
+      response.end(err);
+    } else {
+      response.statusCode = 200;
+      /* TODO: Make the result a JSON string */
+      response.end(result.id);
+    }
+  });
 });
 
 http.createServer(function(request, response) {
@@ -49,8 +61,8 @@ http.createServer(function(request, response) {
     /* When there are no more data chunks, turn data into a string
      * and set to the request body property */
     if (body.length > 0) {
-      console.log('tryna parse');
       body = Buffer.concat(body).toString();
+      /* TODO: Catch error - server dies if JSON doesn't parse */
       request.body = JSON.parse(body);
     }
     /* Hand request off to the router */

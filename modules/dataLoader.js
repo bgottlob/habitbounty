@@ -14,9 +14,9 @@ var db = new PouchDB(url + ':' + port + '/habitbounty', {
 });
 
 /* Pushes a Habit object as a new document in the database */
-loader.createHabit = function(habit) {
+loader.createHabit = function(habit, callback) {
   if (!(habit instanceof Habit)) {
-    return console.log('The parameter is not an instance of Habit prototype');
+    callback('The parameter is not an instance of Habit prototype');
     /* There's probably some better way of doing this
     callback({
       error: 'bad_data_type',
@@ -27,8 +27,8 @@ loader.createHabit = function(habit) {
   }
   else {
     db.post(habit.toDoc(), function(err, response) {
-      if (err) return console.log(err);
-      else return console.log(response);
+      if (err) callback(err);
+      else callback(null, response);
     });
   }
 };
