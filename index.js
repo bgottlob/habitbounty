@@ -39,17 +39,36 @@ router.add('GET', /^\/$/, (request, response) => {
 router.add('POST', /^\/habit$/, (request, response) => {
   /* TODO: Catch potential issue -- name and reward must be present in
    * request -- maybe even find spurious attributes in JSON */
-  const habit = new Habit(request.body.name, request.body.reward);
-  loader.createHabit(habit, (err, result) => {
-    if (err) {
-      response.statusCode = 400;
-      response.end(err);
-    } else {
-      response.statusCode = 200;
-      /* TODO: Make the result a JSON string */
-      response.end(result.id);
-    }
-  });
+  var err = null;
+  missing = [];
+  if (!request.body.name)
+    missing.push("name");
+  if (!request.body.reward)
+    missing.push("reward");
+
+  if (missing.length > 0) {
+    response.statusCode = 400;
+    response.end(JSON.stringify({
+      message: 'missing attribute(s) ' + missing.join(',')
+    }));
+  } else if (isNaN(request.body.reward)) {
+    response.statusCode = 400;
+    response.end(JSON.stringify({
+      message: 'reward is not a number'
+    }));
+  } else {
+    const habit = new Habit(request.body.name, request.body.reward);
+    loader.createHabit(habit, (err, result) => {
+      if (err) {
+        response.statusCode = 400;
+        response.end(JSON.stringify(err));
+      } else {
+        response.statusCode = 200;
+        /* TODO: Make the result a JSON string */
+        response.end(JSON.stringify(result));
+      }
+    });
+  }
 });
 
 http.createServer(function(request, response) {
