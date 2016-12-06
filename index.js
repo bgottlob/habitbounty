@@ -8,6 +8,8 @@ const Habit = require('./modules/habit.js');
 var router = new Router();
 var fileServer = ecstatic({root: __dirname + '/public'});
 
+/* Compile and serve the HTML for the home page, a list of all habits
+ * in the system */
 router.add('GET', /^\/$/, (request, response) => {
   var path = 'views/index.html';
   loader.allHabits((err, results) => {
@@ -32,6 +34,18 @@ router.add('GET', /^\/$/, (request, response) => {
           response.end(html);
         }
       });
+    }
+  });
+});
+
+/* Return a list of all habits in JSON for any client to consume */
+router.add('GET', /^\/all-habits$/, (request, response) => {
+  loader.allHabits((err, results) => {
+    if (err) {
+      response.statusCode = 404;
+      response.end(JSON.stringify(err));
+    } else {
+      response.end(JSON.stringify(results));
     }
   });
 });
