@@ -1,0 +1,22 @@
+{
+  "name": "habitbounty",
+  "version": "0.0.0",
+  "description": "An app that helps you keep up habits by setting aside money rewards",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/bgottlob/habitbounty.git"
+  },
+  "author": "Brandon Gottlob",
+  "license": "Apache-2.0",
+  "homepage": "https://bitbucket.org/bgottlob/habitbounty#readme",
+  "dependencies": {
+    "ecstatic": "^2.1.0",
+    "handlebars": "^4.0.5",
+    "moment": "^2.16.0",
+    "pouchdb": "^6.0.6"
+  }
+}
