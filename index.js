@@ -1,5 +1,6 @@
 const http = require('http');
 const loader = require('./modules/dataLoader.js');
+const logCoder = require('./modules/logCoder');
 const Router = require('./modules/router.js')
 const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
@@ -50,7 +51,65 @@ router.add('GET', /^\/all-habits$/, (request, response) => {
   });
 });
 
-router.add('POST', /^\/habit$/, (request, response) => {
+router.add('GET', /^\/habit\/(\w+)/, (request, response, docId) => {
+  loader.getHabit(docId, (err, doc) => {
+    if (err) {
+      response.statusCode = 404;
+      response.end(JSON.stringify(err));
+    } else
+      response.end(JSON.stringify(doc));
+  });
+});
+
+router.add('POST', /^\/complete-habit\/(\w+)/, (request, response, docId) => {
+  loader.getHabit(docId, (err, doc) => {
+    if (err) {
+      response.statusCode = 404;
+      response.end(JSON.stringify(err));
+    } else {
+      /* Assuming the client doesn't send anything to the server -- the server
+       * must figure out the time to complete this */
+      var habit = new Habit(doc.name, doc.reward, logCoder.decodeLog(doc.log));
+      habit.complete();
+      loader.updateHabit(Object.assign(doc, habit.toDoc()), (err, result) => {
+        if (err) {
+          response.statusCode = 400;
+          response.end(JSON.stringify(err));
+        }
+        else response.end(JSON.stringify(result));
+      });
+    }
+  });
+});
+
+/* Update basic info about a habit -- but not the log -- never trust the client
+ * Ignores everything in the request body except for the name and reward */
+router.add('POST', /^\/info-habit\/(\w+)/, (request, response, docId) => {
+  loader.getHabit(docId, (err, doc) => {
+    if (err) {
+      response.statusCode = 404;
+      response.end(JSON.stringify(err));
+    } else {
+      /* TODO: Coerce the types of the body arguments to check for potential
+       * errors there; also check if the arguments exist */
+      /* TODO: Maybe just always pass these arguments to the Habit constructor
+       * so that the Habit prototype can handle santization of the data */
+      const updatedDoc = Object.assign(doc, {
+        name: String(request.body.name),
+        reward: Number(request.body.reward)
+      });
+      loader.updateHabit(updatedDoc, (err, result) => {
+        if (err) {
+          response.statusCode = 400;
+          response.end(JSON.stringify(err));
+        }
+        else response.end(JSON.stringify(result));
+      });
+    }
+  });
+});
+
+router.add('PUT', /^\/habit$/, (request, response) => {
   /* TODO: Catch potential issue -- name and reward must be present in
    * request -- maybe even find spurious attributes in JSON */
   var err = null;
