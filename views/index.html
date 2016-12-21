@@ -14,30 +14,22 @@
 
   </head>
   <body>
-    <div class="container">
-      <h2>Your daily habits:</h2>
-      <table>
-        <tbody>
-          <tr>
-            <td>
-              <form action="api-call-here">
-                <input type="checkbox" name="completed" value="completed"/>
-              </form>
-            </td>
-            <td>Cook dinner</td>
-            <td>$0.35</td>
-          </tr>
-          <tr>
-            <td>
-              <form action="api-call-here">
-                <input type="checkbox" name="completed" value="completed"/>
-              </form>
-            </td>
-            <td>Walk the dog</td>
-            <td>$1.35</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <h4>Welcome to HabitBounty</h4>
+    {{#if error}}<h6>{{error}}</h6>{{/if}}
+    {{#if habits}}
+    <h5>Your habits:</h5>
+    <table>
+      <tbody>
+        {{#each habits}}
+        <tr>
+          <td>
+            <form action="api-call-here">
+              <input type="checkbox" name="completed" value="completed"/>
+            </form>
+          </td>
+          <td>{{name}}</td>
+          <td>${{reward}}</td>
+        </tr>
+        {{/each}}
   </body>
 </html>

@@ -14,35 +14,40 @@ var db = new PouchDB(url + ':' + port + '/habitbounty', {
 });
 
 /* Pushes a Habit object as a new document in the database */
-loader.createHabit = function(habit) {
+loader.createHabit = function(habit, callback) {
   if (!(habit instanceof Habit)) {
-    return console.log('The parameter is not an instance of Habit prototype');
-    /* There's probably some better way of doing this
-    callback({
+    return callback({
       error: 'bad_data_type',
       param: habit,
       message: 'The parameter is not an instance of the Habit prototype'
     });
-    */
   }
   else {
-    db.post(habit.toDoc(), function(err, response) {
-      if (err) return console.log(err);
-      else return console.log(response);
+    db.post(habit.toDoc(), function(err, result) {
+      if (err) return callback(err);
+      else return callback(null, result);
     });
   }
 };
 
-loader.getHabit = (docId, callback) => {
+/* Assumes the doc object contains the _id and _rev, or else couch will give
+ * an error */
+loader.updateHabit = function(doc, callback) {
+  db.put(doc, (err, response) => {
+    callback(err, response);
+  });
+};
+
+loader.getHabit = function(docId, callback) {
   db.get(docId, (err, doc) => {
-    if (err) return console.log(err);
-    else return callback(doc);
+    if (err) return callback(err)
+    else return callback(null, doc);
   });
 };
 
 loader.allHabits = (callback) => {
   db.query('queries/all_habits', (err, result) => {
-    if (err) return console.log(err);
+    if (err) return callback(err);
     else {
       resList = [];
       result.rows.forEach((row) => {
@@ -51,7 +56,7 @@ loader.allHabits = (callback) => {
         habit.id = row.id;
         resList.push(habit);
       });
-      return callback(resList);
+      return callback(null, resList);
     }
   });
 };
@@ -108,4 +113,4 @@ habs[0].complete();
 habs[2].complete();
 habs.forEach((hab) => { loader.createHabit(hab) });
 */
-loader.allHabits(console.log);
+//loader.allHabits(console.log);
