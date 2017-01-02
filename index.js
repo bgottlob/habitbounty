@@ -9,34 +9,27 @@ const Habit = require('./modules/habit.js');
 var router = new Router();
 var fileServer = ecstatic({root: __dirname + '/public'});
 
+/* For serving files that come from node modules */
+var libServer = ecstatic({root: __dirname + '/node_modules'});
+
 /* Compile and serve the HTML for the home page, a list of all habits
  * in the system */
 router.add('GET', /^\/$/, (request, response) => {
-  var path = 'views/index.html';
-  loader.allHabits((err, results) => {
-    if (err) {
-      console.log(err);
-      const context = { error: 'Your habits could not be loaded :(' };
-      templateHandler(path, context, (err, html) => {
-        if (err) {
-          response.statusCode = 404; /* Is this an appropriate code? */
-          response.end('<h4>404 Error: Page not found</h4>');
-        } else {
-          response.end(html);
-        }
-      });
-    } else {
-      const context = { habits: results };
-      templateHandler(path, context, (err, html) => {
-        if (err) {
-          response.statusCode = 404; /* Is this an appropriate code? */
-          response.end('<h4>404 Error: Page not found</h4>');
-        } else {
-          response.end(html);
-        }
-      });
-    }
-  });
+  request.url = '/index.html';
+  fileServer(request, response);
+});
+
+router.add('GET', /^\/lib\/(.+)$/, function (request, response, filename) {
+  filenameMap = {
+    'handlebars.min.js': '/handlebars/dist/handlebars.min.js',
+    'milligram.min.css': '/milligram/dist/milligram.min.css',
+    'normalize.css': '/normalize.css/normalize.css'
+  };
+  request.url = filenameMap[filename];
+  /* TODO: send a file not found error directly to browser, don't put into the
+   * library file server */
+  if (!request.url) request.url = 'notafile';
+  libServer(request, response);
 });
 
 /* Return a list of all habits in JSON for any client to consume */
@@ -46,6 +39,9 @@ router.add('GET', /^\/all-habits$/, (request, response) => {
       response.statusCode = 404;
       response.end(JSON.stringify(err));
     } else {
+      results = {
+        habits: results
+      };
       response.end(JSON.stringify(results));
     }
   });

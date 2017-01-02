@@ -1,0 +1,18 @@
+<h4>Welcome to HabitBounty</h4>
+{{#if error}}<h6>{{error}}</h6>{{/if}}
+{{#if habits}}
+<h5>Your habits:</h5>
+<table>
+  <tbody>
+    {{#each habits}}
+    <tr>
+      <td>
+        <input class="completeHabit" type="checkbox" value="{{id}}"/>
+      </td>
+      <td>{{name}}</td>
+      <td>${{reward}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+{{/if}}
