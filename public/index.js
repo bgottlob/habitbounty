@@ -30,6 +30,7 @@ Promise.all(promises).then(function (values) {
   var div = document.createElement('div');
   div.innerHTML = html;
   document.getElementsByTagName('body')[0].appendChild(div);
+  documentReady();
 }).catch(function (err) {
   var html = "<h2>Error</h2><p>Sorry, your content wan't found!</p>";
   var div = document.createElement('div');
@@ -65,10 +66,23 @@ function httpPromise(url, method, mimeType) {
   });
 }
 
-/* Event listeners for checkboxes */
-var checkboxes = document.getElementsByClassName('completeHabit');
-for (var i = 0; i < checkboxes.length; i++) {
-  checkboxes.item(i).addEventListener("click", function() {
-    console.log("Clicked!");
-  });
+/* Will only run once the handlebars template is filled out and the elements
+ * have been loaded into the DOM */
+function documentReady() {
+  /* Event listeners for checkboxes */
+  var checkboxes = document.getElementsByClassName('completeHabit');
+  for (var i = 0; i < checkboxes.length; i++) {
+    checkboxes[i].addEventListener("click", function(event) {
+      const habitId = event.currentTarget.getAttribute('value');
+      event.currentTarget.disabled = true;
+      httpPromise('complete-habit/' + habitId, 'POST', 'application/json')
+        .then(function (response) {
+          console.log('All good in the hood');
+          console.log(response);
+        }).catch(function (err) {
+          console.log('Houston we have a problem');
+          console.log(err);
+        });
+    });
+  }
 }
