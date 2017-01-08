@@ -1,18 +1,15 @@
 const moment = require('moment');
 
-/* Encodes moments into arrays of UTC timestamps */
+/* Encodes moments into arrays of local dates (without time) */
 module.exports.encodeLog = function(log) {
   return log.map((mDate) => {
-    /* Set flag on the moment to use UTC in the following calls */
-    mDate.utc();
-    return [mDate.year(), mDate.month(), mDate.date(), mDate.hour(),
-            mDate.minute()];
+    return [mDate.year(), mDate.month(), mDate.date()];
   });
 };
 
-/* Decodes arrays of UTC timestamps into moments */
+/* Decodes arrays representing dates into local moments */
 module.exports.decodeLog = function (log) {
   return log.map((utcArr) => {
-    return moment.utc(utcArr).local();
+    return moment.local();
   });
 };

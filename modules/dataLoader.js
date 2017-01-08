@@ -2,7 +2,6 @@ var loader = module.exports;
 
 const PouchDB = require('pouchdb');
 const Habit = require('./habit.js');
-const logCoder = require('./logCoder');
 
 const url = 'http://localhost';
 const port = 5984;
@@ -32,16 +31,19 @@ loader.createHabit = function(habit, callback) {
 
 /* Assumes the doc object contains the _id and _rev, or else couch will give
  * an error */
-loader.updateHabit = function(doc, callback) {
-  db.put(doc, (err, response) => {
-    callback(err, response);
+loader.updateHabit = function (doc) {
+  return db.put(doc).then(function (response) {
+    return Promise.resolve(response);
+  }).catch(function (err) {
+    return Promise.reject(err);
   });
 };
 
-loader.getHabit = function(docId, callback) {
-  db.get(docId, (err, doc) => {
-    if (err) return callback(err)
-    else return callback(null, doc);
+loader.getHabit = function(docId) {
+  return db.get(docId).then(function (doc) {
+    return Promise.resolve(doc);
+  }).catch(function (err) {
+    return Promise.reject(err);
   });
 };
 
@@ -51,8 +53,7 @@ loader.allHabits = (callback) => {
     else {
       resList = [];
       result.rows.forEach((row) => {
-        var habit = new Habit(row.value.name, row.value.reward,
-                              logCoder.decodeLog(row.value.log));
+        var habit = new Habit(row.value.name, row.value.reward, row.value.log);
         habit.id = row.id;
         resList.push(habit);
       });

@@ -40,7 +40,7 @@ Promise.all(promises).then(function (values) {
 });
 
 /* TODO: Add some post-processing function argument here? */
-function httpPromise(url, method, mimeType) {
+function httpPromise(url, method, mimeType, body) {
   return new Promise(function (fulfill, reject) {
     var request = new XMLHttpRequest();
     request.open(method, url);
@@ -62,7 +62,10 @@ function httpPromise(url, method, mimeType) {
       }
     };
     if (mimeType) request.overrideMimeType(mimeType);
-    request.send(null);
+    if (body)
+      request.send(JSON.stringify(body));
+    else
+      request.send();
   });
 }
 
@@ -75,7 +78,13 @@ function documentReady() {
     checkboxes[i].addEventListener("click", function(event) {
       const habitId = event.currentTarget.getAttribute('value');
       event.currentTarget.disabled = true;
-      httpPromise('complete-habit/' + habitId, 'POST', 'application/json')
+      /* TODO: Import Date prototype toLocalArray function from habit.js */
+      var today = new Date();
+      var reqBody = {
+        id: habitId,
+        date: [today.getFullYear(), today.getMonth(), today.getDate()]
+      };
+      httpPromise('complete-habit', 'POST', 'application/json', reqBody)
         .then(function (response) {
           console.log('All good in the hood');
           console.log(response);

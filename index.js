@@ -1,6 +1,5 @@
 const http = require('http');
 const loader = require('./modules/dataLoader.js');
-const logCoder = require('./modules/logCoder');
 const Router = require('./modules/router.js')
 const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
@@ -57,24 +56,28 @@ router.add('GET', /^\/habit\/(\w+)/, (request, response, docId) => {
   });
 });
 
-router.add('POST', /^\/complete-habit\/(\w+)/, (request, response, docId) => {
-  loader.getHabit(docId, (err, doc) => {
-    if (err) {
-      response.statusCode = 404;
-      response.end(JSON.stringify(err));
-    } else {
-      /* Assuming the client doesn't send anything to the server -- the server
-       * must figure out the time to complete this */
-      var habit = new Habit(doc.name, doc.reward, logCoder.decodeLog(doc.log));
-      habit.complete();
-      loader.updateHabit(Object.assign(doc, habit.toDoc()), (err, result) => {
-        if (err) {
-          response.statusCode = 400;
-          response.end(JSON.stringify(err));
-        }
-        else response.end(JSON.stringify(result));
-      });
-    }
+/* Route: /complete-habits
+ * Body (to complete habits on Jan 20, 2017:
+ * [
+ *   { "id": "<couch_id>", "date": [2017, 0, 20] },
+ *   ...
+ *   { "id": "<couch_id>", "date": [2017, 0, 20] }
+ * ]
+ */
+router.add('POST', /^\/complete-habit$/, (request, response) => {
+  const docId = request.body.id;
+  const dateArray = request.body.date;
+  loader.getHabit(docId).then(function (doc) {
+    var habit = new Habit(doc.name, doc.reward, doc.log);
+    habit.complete(dateArray);
+    return Promise.resolve(Object.assign(doc, habit.toDoc()));
+  }).then(function (doc) {
+    return loader.updateHabit(doc);
+  }).then(function (result) {
+    return response.end(JSON.stringify(result));
+  }).catch(function (err) {
+    response.statusCode = 400;
+    return response.end(JSON.stringify(err));
   });
 });
 
