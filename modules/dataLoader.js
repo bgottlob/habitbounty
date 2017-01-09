@@ -2,6 +2,7 @@ var loader = module.exports;
 
 const PouchDB = require('pouchdb');
 const Habit = require('./habit.js');
+const Balance = require('./balance.js');
 
 const url = 'http://localhost';
 const port = 5984;
@@ -29,9 +30,27 @@ loader.createHabit = function(habit, callback) {
   }
 };
 
+/* Pushes a Balance object as a new document in the database */
+loader.createBalance = function(balance) {
+  if (!(balance instanceof Balance)) {
+    return Promise.reject({
+      error: 'bad_data_type',
+      param: habit,
+      message: 'The parameter is not an instance of the Balance prototype'
+    });
+  }
+  else {
+    return db.put(balance.toDoc()).then(function (result) {
+      return Promise.resolve(result);
+    }).catch(function (err) {
+      return Promise.reject(err)
+    });
+  }
+};
+
 /* Assumes the doc object contains the _id and _rev, or else couch will give
  * an error */
-loader.updateHabit = function (doc) {
+loader.updateDoc = function (doc) {
   return db.put(doc).then(function (response) {
     return Promise.resolve(response);
   }).catch(function (err) {
@@ -39,13 +58,17 @@ loader.updateHabit = function (doc) {
   });
 };
 
-loader.getHabit = function(docId) {
+loader.getDoc = function(docId) {
   return db.get(docId).then(function (doc) {
     return Promise.resolve(doc);
   }).catch(function (err) {
     return Promise.reject(err);
   });
 };
+
+/* TODO: get rid of updateHabit -- will need to remove call in root/index.js */
+loader.updateHabit = loader.updateDoc;
+loader.getHabit = loader.getDoc;
 
 loader.allHabits = (callback) => {
   db.query('queries/all_habits', (err, result) => {
