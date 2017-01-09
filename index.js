@@ -1,6 +1,5 @@
 const http = require('http');
 const loader = require('./modules/dataLoader.js');
-const logCoder = require('./modules/logCoder');
 const Router = require('./modules/router.js')
 const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
@@ -9,34 +8,27 @@ const Habit = require('./modules/habit.js');
 var router = new Router();
 var fileServer = ecstatic({root: __dirname + '/public'});
 
+/* For serving files that come from node modules */
+var libServer = ecstatic({root: __dirname + '/node_modules'});
+
 /* Compile and serve the HTML for the home page, a list of all habits
  * in the system */
 router.add('GET', /^\/$/, (request, response) => {
-  var path = 'views/index.html';
-  loader.allHabits((err, results) => {
-    if (err) {
-      console.log(err);
-      const context = { error: 'Your habits could not be loaded :(' };
-      templateHandler(path, context, (err, html) => {
-        if (err) {
-          response.statusCode = 404; /* Is this an appropriate code? */
-          response.end('<h4>404 Error: Page not found</h4>');
-        } else {
-          response.end(html);
-        }
-      });
-    } else {
-      const context = { habits: results };
-      templateHandler(path, context, (err, html) => {
-        if (err) {
-          response.statusCode = 404; /* Is this an appropriate code? */
-          response.end('<h4>404 Error: Page not found</h4>');
-        } else {
-          response.end(html);
-        }
-      });
-    }
-  });
+  request.url = '/index.html';
+  fileServer(request, response);
+});
+
+router.add('GET', /^\/lib\/(.+)$/, function (request, response, filename) {
+  filenameMap = {
+    'handlebars.min.js': '/handlebars/dist/handlebars.min.js',
+    'milligram.min.css': '/milligram/dist/milligram.min.css',
+    'normalize.css': '/normalize.css/normalize.css'
+  };
+  request.url = filenameMap[filename];
+  /* TODO: send a file not found error directly to browser, don't put into the
+   * library file server */
+  if (!request.url) request.url = 'notafile';
+  libServer(request, response);
 });
 
 /* Return a list of all habits in JSON for any client to consume */
@@ -46,6 +38,9 @@ router.add('GET', /^\/all-habits$/, (request, response) => {
       response.statusCode = 404;
       response.end(JSON.stringify(err));
     } else {
+      results = {
+        habits: results
+      };
       response.end(JSON.stringify(results));
     }
   });
@@ -61,24 +56,32 @@ router.add('GET', /^\/habit\/(\w+)/, (request, response, docId) => {
   });
 });
 
-router.add('POST', /^\/complete-habit\/(\w+)/, (request, response, docId) => {
-  loader.getHabit(docId, (err, doc) => {
-    if (err) {
-      response.statusCode = 404;
-      response.end(JSON.stringify(err));
-    } else {
-      /* Assuming the client doesn't send anything to the server -- the server
-       * must figure out the time to complete this */
-      var habit = new Habit(doc.name, doc.reward, logCoder.decodeLog(doc.log));
-      habit.complete();
-      loader.updateHabit(Object.assign(doc, habit.toDoc()), (err, result) => {
-        if (err) {
-          response.statusCode = 400;
-          response.end(JSON.stringify(err));
-        }
-        else response.end(JSON.stringify(result));
-      });
-    }
+/* Route: /complete-habit
+ * Body (to complete habits on Jan 20, 2017:
+ * [
+ *   { "id": "<couch_id>", "date": [2017, 0, 20], "set": "true" },
+ *   ...
+ *   { "id": "<couch_id>", "date": [2017, 0, 20], "set": "false" }
+ * ]
+ */
+router.add('POST', /^\/complete-habit$/, (request, response) => {
+  const docId = request.body.id;
+  const dateArray = request.body.date;
+  const set = request.body.set;
+  loader.getHabit(docId).then(function (doc) {
+    var habit = new Habit(doc.name, doc.reward, doc.log);
+    if (set)
+      habit.complete(dateArray);
+    else
+      habit.uncomplete(dateArray);
+    return Promise.resolve(Object.assign(doc, habit.toDoc()));
+  }).then(function (doc) {
+    return loader.updateHabit(doc);
+  }).then(function (result) {
+    return response.end(JSON.stringify(result));
+  }).catch(function (err) {
+    response.statusCode = 400;
+    return response.end(JSON.stringify(err));
   });
 });
 
