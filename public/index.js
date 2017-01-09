@@ -1,3 +1,18 @@
+Array.prototype.isSame = function(other) {
+  var acc = this.length == other.length;
+  for (var i = 0; i < this.length; i++) {
+    if (!acc) return acc;
+    acc = acc && this[i] == other[i];
+  }
+  return acc;
+};
+
+/* Converts a Date object into a [year, month, day]. Note that months are
+ * zero indexed to keep with standard set by JavaScript Date and moment */
+Date.prototype.toLocalArray = function() {
+  return [this.getFullYear(), this.getMonth(), this.getDate()]
+};
+
 /* Client side code for index.html view */
 var templatePromise = httpPromise('index.handlebars', 'GET', 'text/plain')
   .then(function (response) {
@@ -22,6 +37,15 @@ var contextPromise = httpPromise('all-habits', 'GET', 'application/json')
   }).catch(function (err) {
     return Promise.reject(err);
   });
+
+Handlebars.registerHelper('isComplete', function(log) {
+  /* TODO: Put habit isComplete function here */
+  const todayArray = (new Date()).toLocalArray();
+  var isComplete = log.reduce(function (acc, dateArray) {
+    return acc || dateArray.isSame(todayArray);
+  }, false);
+  if (isComplete) return 'checked';
+});
 
 var promises = [ templatePromise, contextPromise ];
 
@@ -77,20 +101,32 @@ function documentReady() {
   for (var i = 0; i < checkboxes.length; i++) {
     checkboxes[i].addEventListener("click", function(event) {
       const habitId = event.currentTarget.getAttribute('value');
-      event.currentTarget.disabled = true;
+      var set = true;
+      if (event.currentTarget.hasAttribute('checked')) {
+        event.currentTarget.removeAttribute('checked');
+        set = false;
+      }
+      else {
+        event.currentTarget.setAttribute('checked', '');
+        set = true;
+      }
+
       /* TODO: Import Date prototype toLocalArray function from habit.js */
       var today = new Date();
-      var reqBody = {
+      var body = {
         id: habitId,
+        set: set,
         date: [today.getFullYear(), today.getMonth(), today.getDate()]
       };
-      httpPromise('complete-habit', 'POST', 'application/json', reqBody)
+      event.target.disabled = true;
+      httpPromise('complete-habit', 'POST', 'application/json', body)
         .then(function (response) {
-          console.log('All good in the hood');
           console.log(response);
+          event.target.disabled = false;
         }).catch(function (err) {
-          console.log('Houston we have a problem');
           console.log(err);
+          event.target.disabled = false;
+          /* TODO: should the box be checked or unchecked if it fails? */
         });
     });
   }

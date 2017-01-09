@@ -7,7 +7,7 @@
     {{#each habits}}
     <tr>
       <td>
-        <input class="completeHabit" type="checkbox" value="{{id}}"/>
+        <input class="completeHabit" type="checkbox" value="{{id}}" {{isComplete log}}/>
       </td>
       <td>{{name}}</td>
       <td>${{reward}}</td>

@@ -56,20 +56,24 @@ router.add('GET', /^\/habit\/(\w+)/, (request, response, docId) => {
   });
 });
 
-/* Route: /complete-habits
+/* Route: /complete-habit
  * Body (to complete habits on Jan 20, 2017:
  * [
- *   { "id": "<couch_id>", "date": [2017, 0, 20] },
+ *   { "id": "<couch_id>", "date": [2017, 0, 20], "set": "true" },
  *   ...
- *   { "id": "<couch_id>", "date": [2017, 0, 20] }
+ *   { "id": "<couch_id>", "date": [2017, 0, 20], "set": "false" }
  * ]
  */
 router.add('POST', /^\/complete-habit$/, (request, response) => {
   const docId = request.body.id;
   const dateArray = request.body.date;
+  const set = request.body.set;
   loader.getHabit(docId).then(function (doc) {
     var habit = new Habit(doc.name, doc.reward, doc.log);
-    habit.complete(dateArray);
+    if (set)
+      habit.complete(dateArray);
+    else
+      habit.uncomplete(dateArray);
     return Promise.resolve(Object.assign(doc, habit.toDoc()));
   }).then(function (doc) {
     return loader.updateHabit(doc);

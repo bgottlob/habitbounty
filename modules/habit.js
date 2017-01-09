@@ -41,6 +41,12 @@ Habit.prototype.complete = function(dateArray) {
     this.log.push(dateArray);
 };
 
+Habit.prototype.uncomplete = function(dateArray) {
+  this.log = this.log.filter(function (fromLog) {
+    return !fromLog.isSame(dateArray);
+  });
+};
+
 /* Returns an object that is ready to be placed into the db as a document */
 Habit.prototype.toDoc = function() {
   return {
