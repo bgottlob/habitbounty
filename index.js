@@ -4,6 +4,7 @@ const Router = require('./modules/router.js')
 const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/habit.js');
+const Balance = require('./modules/balance.js');
 
 var router = new Router();
 var fileServer = ecstatic({root: __dirname + '/public'});
@@ -38,21 +39,28 @@ router.add('GET', /^\/all-habits$/, (request, response) => {
       response.statusCode = 404;
       response.end(JSON.stringify(err));
     } else {
-      results = {
-        habits: results
-      };
       response.end(JSON.stringify(results));
     }
   });
 });
 
 router.add('GET', /^\/habit\/(\w+)/, (request, response, docId) => {
-  loader.getHabit(docId, (err, doc) => {
-    if (err) {
-      response.statusCode = 404;
-      response.end(JSON.stringify(err));
-    } else
-      response.end(JSON.stringify(doc));
+  loader.getHabit(docId).then(function (doc) {
+    response.end(JSON.stringify(doc));
+  }).catch(function (err) {
+    response.statusCode = 404;
+    response.end(JSON.stringify(err));
+  });
+});
+
+router.add('GET', /^\/balance/, (request, response) => {
+  console.log('getting balance');
+  loader.getHabit('balance').then(function (doc) {
+    console.log(doc);
+    response.end(JSON.stringify(doc));
+  }).catch(function (err) {
+    response.statusCode = 404;
+    response.end(JSON.stringify(err));
   });
 });
 
@@ -77,6 +85,23 @@ router.add('POST', /^\/complete-habit$/, (request, response) => {
     return Promise.resolve(Object.assign(doc, habit.toDoc()));
   }).then(function (doc) {
     return loader.updateHabit(doc);
+  }).then(function (result) {
+    return response.end(JSON.stringify(result));
+  }).catch(function (err) {
+    response.statusCode = 400;
+    return response.end(JSON.stringify(err));
+  });
+});
+
+router.add('POST', /^\/change-balance$/, (request, response) => {
+  const changeAmt = request.body.changeAmt;
+  console.log('Changing balance by ' + changeAmt);
+  loader.getDoc('balance').then(function (doc) {
+    var balance = new Balance(doc.amount);
+    balance.changeAmountBy(changeAmt);
+    return Promise.resolve(Object.assign(doc, balance.toDoc()));
+  }).then(function (doc) {
+    return loader.updateDoc(doc);
   }).then(function (result) {
     return response.end(JSON.stringify(result));
   }).catch(function (err) {

@@ -25,7 +25,20 @@ var templatePromise = httpPromise('index.handlebars', 'GET', 'text/plain')
     return Promise.reject(err);
   });
 
-var contextPromise = httpPromise('all-habits', 'GET', 'application/json')
+var habitPromise = httpPromise('all-habits', 'GET', 'application/json')
+  .then(function (response) {
+    return new Promise(function (fulfill, reject) {
+      try {
+        fulfill(JSON.parse(response));
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }).catch(function (err) {
+    return Promise.reject(err);
+  });
+
+var balancePromise = httpPromise('balance', 'GET', 'application/json')
   .then(function (response) {
     return new Promise(function (fulfill, reject) {
       try {
@@ -47,10 +60,14 @@ Handlebars.registerHelper('isComplete', function(log) {
   if (isComplete) return 'checked';
 });
 
-var promises = [ templatePromise, contextPromise ];
+var promises = [ templatePromise, habitPromise, balancePromise ];
 
 Promise.all(promises).then(function (values) {
-  var html = values[0](values[1]);
+  console.log('fulfilled all client side promises');
+  var html = values[0]({
+    habits: values[1],
+    balance: values[2].amount
+  });
   var div = document.createElement('div');
   div.innerHTML = html;
   document.getElementsByTagName('body')[0].appendChild(div);
@@ -120,6 +137,20 @@ function documentReady() {
       };
       event.target.disabled = true;
       httpPromise('complete-habit', 'POST', 'application/json', body)
+        .then(function (response) {
+          console.log(response);
+          event.target.disabled = false;
+        }).catch(function (err) {
+          console.log(err);
+          event.target.disabled = false;
+          /* TODO: should the box be checked or unchecked if it fails? */
+        });
+      var balanceBody = {};
+      if (set)
+        balanceBody.changeAmt = Number(event.target.getAttribute('data-reward'));
+      else
+        balanceBody.changeAmt = -1 * Number(event.target.getAttribute('data-reward'));
+      httpPromise('change-balance', 'POST', 'application/json', balanceBody)
         .then(function (response) {
           console.log(response);
           event.target.disabled = false;

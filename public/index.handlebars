@@ -1,5 +1,6 @@
 <h4>Welcome to HabitBounty</h4>
 {{#if error}}<h6>{{error}}</h6>{{/if}}
+<h5>Your balance is: ${{balance}}</h5>
 {{#if habits}}
 <h5>Your habits:</h5>
 <table>
@@ -7,7 +8,8 @@
     {{#each habits}}
     <tr>
       <td>
-        <input class="completeHabit" type="checkbox" value="{{id}}" {{isComplete log}}/>
+        <input class="completeHabit" type="checkbox" value="{{id}}"
+         data-reward="{{reward}}" {{isComplete log}}/>
       </td>
       <td>{{name}}</td>
       <td>${{reward}}</td>
