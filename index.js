@@ -3,14 +3,17 @@ const loader = require('./modules/dataLoader.js');
 const Router = require('./modules/router.js')
 const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
-const Habit = require('./modules/habit.js');
-const Balance = require('./modules/balance.js');
+const Habit = require('./modules/sharedLibs/habit.js');
+const Balance = require('./modules/sharedLibs/balance.js');
 
 var router = new Router();
 var fileServer = ecstatic({root: __dirname + '/public'});
 
 /* For serving files that come from node modules */
-var libServer = ecstatic({root: __dirname + '/node_modules'});
+var nodeModServer = ecstatic({root: __dirname + '/node_modules'});
+
+/* For service files that are shared between server and client code */
+var sharedLibServer = ecstatic({root: __dirname + '/modules/sharedLibs'});
 
 /* Compile and serve the HTML for the home page, a list of all habits
  * in the system */
@@ -20,16 +23,22 @@ router.add('GET', /^\/$/, (request, response) => {
 });
 
 router.add('GET', /^\/lib\/(.+)$/, function (request, response, filename) {
-  filenameMap = {
+  nodeModFiles = {
     'handlebars.min.js': '/handlebars/dist/handlebars.min.js',
     'milligram.min.css': '/milligram/dist/milligram.min.css',
     'normalize.css': '/normalize.css/normalize.css'
   };
-  request.url = filenameMap[filename];
+  request.url = nodeModFiles[filename];
   /* TODO: send a file not found error directly to browser, don't put into the
    * library file server */
   if (!request.url) request.url = 'notafile';
-  libServer(request, response);
+  nodeModServer(request, response);
+});
+
+router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename) {
+  console.log(request.url);
+  if (!request.url) request.url = 'notafile';
+  sharedLibServer(request, response);
 });
 
 /* Return a list of all habits in JSON for any client to consume */

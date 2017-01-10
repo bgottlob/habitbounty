@@ -16,3 +16,9 @@ Balance.prototype.toDoc = function() {
 Balance.prototype.changeAmountBy = function(changeAmt) {
   this.amount += changeAmt;
 };
+
+/* Support importing into browser or node */
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
+  module.exports = Balance;
+else
+  window.Balance = Balance;
