@@ -1,8 +1,8 @@
 var loader = module.exports;
 
 const PouchDB = require('pouchdb');
-const Habit = require('./habit.js');
-const Balance = require('./balance.js');
+const Habit = require('./sharedLibs/habit.js');
+const Balance = require('./sharedLibs/balance.js');
 
 const url = 'http://localhost';
 const port = 5984;
@@ -14,18 +14,19 @@ var db = new PouchDB(url + ':' + port + '/habitbounty', {
 });
 
 /* Pushes a Habit object as a new document in the database */
-loader.createHabit = function(habit, callback) {
+loader.createHabit = function(habit) {
   if (!(habit instanceof Habit)) {
-    return callback({
+    return Promise.reject({
       error: 'bad_data_type',
       param: habit,
       message: 'The parameter is not an instance of the Habit prototype'
     });
   }
   else {
-    db.post(habit.toDoc(), function(err, result) {
-      if (err) return callback(err);
-      else return callback(null, result);
+    return db.post(habit.toDoc()).then(function(result) {
+      return Promise.resolve(result);
+    }).catch(function (err) {
+      return Promise.reject(err);
     });
   }
 };
@@ -70,18 +71,17 @@ loader.getDoc = function(docId) {
 loader.updateHabit = loader.updateDoc;
 loader.getHabit = loader.getDoc;
 
-loader.allHabits = (callback) => {
-  db.query('queries/all_habits', (err, result) => {
-    if (err) return callback(err);
-    else {
-      resList = [];
-      result.rows.forEach((row) => {
-        var habit = new Habit(row.value.name, row.value.reward, row.value.log);
-        habit.id = row.id;
-        resList.push(habit);
-      });
-      return callback(null, resList);
-    }
+loader.allHabits = function() {
+  return db.query('queries/all_habits').then(function (result) {
+    resList = [];
+    result.rows.forEach(function (row) {
+      var habit = new Habit(row.value.name, row.value.reward, row.value.log);
+      habit.id = row.id;
+      resList.push(habit);
+    });
+    return Promise.resolve(resList);
+  }).catch(function (err) {
+    return Promise.reject(err);
   });
 };
 
@@ -101,40 +101,29 @@ var designDoc = {
   }
 };
 
+/* TODO: It appears that control flow is correct here, but look up the
+ * general consensus on performing such a flow */
 pushDesignDoc = () => {
-  db.get(designDocId, (err, doc) => {
-    if (err) {
-      if (err.error === 'not_found') {
-        /* Design doc doesn't exist, create it */
-        db.put(designDoc, (err, response) => {
-          if (err)
-            console.log(err);
-          else
-            console.log('The design doc ' + '"' + designDocId +
-                        '" has been created!');
-        });
-      }
-      else
-        console.log(err);
-    } else {
-      /* Design doc exists, get the revision number and push the updated doc */
-      designDoc._rev = doc._rev;
-      db.put(designDoc, (err, response) => {
-        if (err) console.log(err);
-        else
-          console.log('The design doc ' + '"' + designDocId +
-                      '" has been updated!');
-      });
+  db.get(designDocId).then(function (doc) {
+    /* Design doc exists, get the revision number and push the updated doc */
+    designDoc._rev = doc._rev;
+    return db.put(designDoc);
+  }).then(function (response) {
+    console.log('The design doc ' + '"' + designDocId + '" has been updated!');
+  }).catch(function (err) {
+    if (err.error === 'not_found') {
+      /* Design doc doesn't exist, create it */
+      console.log('Do not fear, the document will be created now!');
+      return db.put(designDoc);
     }
+    else console.log(err);
+  }).then(function (result) {
+    if (result) { /* Result is undefined if db.put does not run */
+      console.log(result);
+      console.log('The design doc ' + '"' + designDocId + '" has been created!');
+    }
+  }).catch(function (err) {
+    console.log('An attempt at creating the design doc failed!');
+    console.log(err);
   });
 }
-
-//pushDesignDoc();
-/*
-var habs = [new Habit("Take a walk", 3.32), new Habit("Make bed", 0.05),
-            new Habit("Wash behind ear", 0.35)];
-habs[0].complete();
-habs[2].complete();
-habs.forEach((hab) => { loader.createHabit(hab) });
-*/
-//loader.allHabits(console.log);
