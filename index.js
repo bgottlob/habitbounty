@@ -37,19 +37,18 @@ router.add('GET', /^\/lib\/(.+)$/, function (request, response, filename) {
 
 router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename) {
   console.log(request.url);
-  if (!request.url) request.url = 'notafile';
+  request.url = '/' + filename;
+  console.log(request.url);
   sharedLibServer(request, response);
 });
 
 /* Return a list of all habits in JSON for any client to consume */
-router.add('GET', /^\/all-habits$/, (request, response) => {
-  loader.allHabits((err, results) => {
-    if (err) {
-      response.statusCode = 404;
-      response.end(JSON.stringify(err));
-    } else {
-      response.end(JSON.stringify(results));
-    }
+router.add('GET', /^\/all-habits$/, function (request, response) {
+  loader.allHabits().then(function (results) {
+    response.end(JSON.stringify(results));
+  }).catch(function (err) {
+    response.statusCode = 404;
+    response.end(JSON.stringify(err));
   });
 });
 
@@ -75,12 +74,7 @@ router.add('GET', /^\/balance/, (request, response) => {
 
 /* Route: /complete-habit
  * Body (to complete habits on Jan 20, 2017:
- * [
- *   { "id": "<couch_id>", "date": [2017, 0, 20], "set": "true" },
- *   ...
- *   { "id": "<couch_id>", "date": [2017, 0, 20], "set": "false" }
- * ]
- */
+ * { "id": "<couch_id>", "date": [2017, 0, 20], "set": "true" }, */
 router.add('POST', /^\/complete-habit$/, (request, response) => {
   const docId = request.body.id;
   const dateArray = request.body.date;

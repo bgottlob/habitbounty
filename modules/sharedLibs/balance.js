@@ -1,5 +1,3 @@
-module.exports = Balance;
-
 function Balance(amount) {
   if (amount) this.amount = amount;
   else this.amount = 0;

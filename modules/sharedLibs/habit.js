@@ -1,3 +1,8 @@
+/* Check if we're on node; if so, we need to require stuff; if not, the
+ * code was imported in the html with <script> tags*/
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
+  require('./sharedLib.js');
+
 function Habit(name, reward, log) {
   if (!name) this.name = 'No Name Set';
   else this.name = String(name);

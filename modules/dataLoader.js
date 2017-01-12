@@ -72,7 +72,7 @@ loader.updateHabit = loader.updateDoc;
 loader.getHabit = loader.getDoc;
 
 loader.allHabits = function() {
-  db.query('queries/all_habits').then(function (result) {
+  return db.query('queries/all_habits').then(function (result) {
     resList = [];
     result.rows.forEach(function (row) {
       var habit = new Habit(row.value.name, row.value.reward, row.value.log);
@@ -101,7 +101,8 @@ var designDoc = {
   }
 };
 
-/* TODO: This needs to be tested for proper control flow */
+/* TODO: It appears that control flow is correct here, but look up the
+ * general consensus on performing such a flow */
 pushDesignDoc = () => {
   db.get(designDocId).then(function (doc) {
     /* Design doc exists, get the revision number and push the updated doc */
@@ -112,12 +113,17 @@ pushDesignDoc = () => {
   }).catch(function (err) {
     if (err.error === 'not_found') {
       /* Design doc doesn't exist, create it */
+      console.log('Do not fear, the document will be created now!');
       return db.put(designDoc);
     }
     else console.log(err);
   }).then(function (result) {
-    console.log('The design doc ' + '"' + designDocId + '" has been created!');
+    if (result) { /* Result is undefined if db.put does not run */
+      console.log(result);
+      console.log('The design doc ' + '"' + designDocId + '" has been created!');
+    }
   }).catch(function (err) {
+    console.log('An attempt at creating the design doc failed!');
     console.log(err);
   });
 }
