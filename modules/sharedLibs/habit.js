@@ -1,21 +1,7 @@
-module.exports = Habit;
-
-/* Checks whether two arrays are equal.
- * Used to check date equality for date arrays in the log */
-Array.prototype.isSame = function(other) {
-  var acc = this.length == other.length;
-  for (var i = 0; i < this.length; i++) {
-    if (!acc) return acc;
-    acc = acc && this[i] == other[i];
-  }
-  return acc;
-};
-
-/* Converts a Date object into a [year, month, day]. Note that months are
- * zero indexed to keep with standard set by JavaScript Date and moment */
-Date.prototype.toLocalArray = function() {
-  return [this.getFullYear(), this.getMonth(), this.getDate()]
-};
+/* Check if we're on node; if so, we need to require stuff; if not, the
+ * code was imported in the html with <script> tags*/
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
+  require('./sharedLib.js');
 
 function Habit(name, reward, log) {
   if (!name) this.name = 'No Name Set';
@@ -56,3 +42,9 @@ Habit.prototype.toDoc = function() {
     type: 'habit'
   };
 };
+
+/* Support importing into browser or node */
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
+  module.exports = Habit;
+else
+  window.Habit = Habit;
