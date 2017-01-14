@@ -1,31 +1,33 @@
 /* Client side code for index.html view */
-var templatePromise = httpPromise('index.handlebars', 'GET', 'text/plain')
-  .then(function (response) {
-    return new Promise(function (fulfill, reject) {
-      /* TODO: probably should be catching errors for bad handlebars syntax
-       * and context compilation */
-      fulfill(Handlebars.compile(response));
+function templatePromise() {
+  return httpPromise('index.handlebars', 'GET', 'text/plain')
+    .then(function (response) {
+      return new Promise(function (fulfill, reject) {
+        /* TODO: probably should be catching errors for bad handlebars syntax
+         * and context compilation */
+        fulfill(Handlebars.compile(response));
+      });
+    }).catch(function (err) {
+      return Promise.reject(err);
     });
-  }).catch(function (err) {
-    return Promise.reject(err);
-  });
+}
 
-var habitPromise = httpPromise('all-habits', 'GET', 'application/json')
-  .then(function (response) {
-    return new Promise(function (fulfill, reject) {
-      try {
-        fulfill(JSON.parse(response));
-      } catch (err) {
-        reject(err);
-      }
+function habitPromise() {
+  return httpPromise('all-habits', 'GET', 'application/json')
+    .then(function (response) {
+      return new Promise(function (fulfill, reject) {
+        try {
+          fulfill(JSON.parse(response));
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }).catch(function (err) {
+      return Promise.reject(err);
     });
-  }).catch(function (err) {
-    return Promise.reject(err);
-  });
+}
 
-var balancePromise = createBalancePromise();
-
-function createBalancePromise() {
+function balancePromise() {
   return httpPromise('balance', 'GET', 'application/json')
     .then(function (response) {
       return new Promise(function (fulfill, reject) {
@@ -40,16 +42,12 @@ function createBalancePromise() {
     });
 }
 
-function habitFromObject(obj) {
-  return new Habit(obj.name, obj.reward, obj.log);
-}
-
 Handlebars.registerHelper('isComplete', function(obj) {
   if (habitFromObject(obj).isComplete(new Date().toLocalArray()))
     return 'checked';
 });
 
-var promises = [ templatePromise, habitPromise, balancePromise ];
+var promises = [ templatePromise(), habitPromise(), balancePromise() ];
 
 Promise.all(promises).then(function (values) {
   console.log('all came back!');
@@ -67,37 +65,10 @@ Promise.all(promises).then(function (values) {
   div.innerHTML = html;
   document.getElementsByTagName('body')[0].appendChild(div);
   console.log(err);
+  console.log(err.stack);
 });
 
-/* TODO: Add some post-processing function argument here? */
-function httpPromise(url, method, mimeType, body) {
-  return new Promise(function (fulfill, reject) {
-    var request = new XMLHttpRequest();
-    request.open(method, url);
-    request.onreadystatechange = function() {
-      try {
-        if (request.readyState === XMLHttpRequest.DONE) {
-          if (request.status === 200) {
-            fulfill(request.response);
-          }
-          else {
-            /* Status code indicated an unsuccessful request */
-            reject(new Error('Request came back with status code '
-              + request.status));
-          }
-        }
-      } catch (err) {
-        /* The server went down */
-        reject(err);
-      }
-    };
-    if (mimeType) request.overrideMimeType(mimeType);
-    if (body)
-      request.send(JSON.stringify(body));
-    else
-      request.send();
-  });
-}
+/* TODO: wrap toggling a checkbox into a shared client side function */
 
 /* Will only run once the handlebars template is filled out and the elements
  * have been loaded into the DOM */
@@ -122,40 +93,31 @@ function documentReady() {
         set: set,
         date: new Date().toLocalArray()
       };
+
+      /* Disable the checkbox once the habit is being changed */
       event.target.disabled = true;
+
       httpPromise('complete-habit', 'POST', 'application/json', body)
-        .then(function (response) {
-          console.log(response);
-          event.target.disabled = false;
-        }).catch(function (err) {
-          console.log(err);
-          event.target.disabled = false;
-          /* TODO: should the box be checked or unchecked if it fails? */
-        });
-
-      var balanceBody = {};
-      if (set)
-        balanceBody.changeAmt = Number(event.target.getAttribute('data-reward'));
-      else
-        balanceBody.changeAmt = -1 * Number(event.target.getAttribute('data-reward'));
-
-      console.log('changing balance!');
-      httpPromise('change-balance', 'POST', 'application/json', balanceBody)
         .then(function (result) {
+          result = JSON.parse(result);
+          document.getElementById('balance').innerHTML = String(result.newBalance);
+          if (result.completed)
+            event.target.setAttribute('checked', '');
+          else
+            event.target.removeAttribute('checked');
+
           event.target.disabled = false;
-          console.log('Getting new balance');
-          createBalancePromise().then(function (res) { /* Getting the balance doc */
-            console.log('Got the new balance');
-            console.log(res);
-            document.getElementById('balance').innerHTML = String(res.amount);
-          }).catch(function (err) {
-            document.getElementById('balance').innerHTML = 'Balance Unknown';
-          });
         }).catch(function (err) {
-          console.log('Error when changing balance!!');
-          console.log(err);
+          console.log('Error occurred when trying to complete the habit');
           event.target.disabled = false;
-          /* TODO: should the box be checked or unchecked if it fails? */
+          /* Set the checkbox to be the opposite of what it has now, the habit's
+           * completion was not toggled */
+          if (event.target.hasAttribute('checked'))
+            event.target.removeAttribute('checked');
+          else
+            event.target.setAttribute('checked', '');
+
+          event.target.disabled = false;
         });
     });
   }
