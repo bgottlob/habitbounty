@@ -18,3 +18,4 @@ Array.prototype.isSame = function(other) {
 Date.prototype.toLocalArray = function() {
   return [this.getFullYear(), this.getMonth(), this.getDate()]
 };
+

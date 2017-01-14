@@ -67,10 +67,6 @@ loader.getDoc = function(docId) {
   });
 };
 
-/* TODO: get rid of updateHabit -- will need to remove call in root/index.js */
-loader.updateHabit = loader.updateDoc;
-loader.getHabit = loader.getDoc;
-
 loader.allHabits = function() {
   return db.query('queries/all_habits').then(function (result) {
     resList = [];
