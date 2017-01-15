@@ -1,20 +1,23 @@
 <h4>Welcome to HabitBounty</h4>
 {{#if error}}<h6>{{error}}</h6>{{/if}}
-<h5>Your balance is: $<span id="balance">{{balance}}</span></h5>
-{{#if habits}}
-<h5>Your habits:</h5>
-<table>
-  <tbody>
-    {{#each habits}}
-    <tr>
-      <td>
-        <input class="completeHabit" type="checkbox" value="{{id}}"
-         data-reward="{{reward}}" {{isComplete this}}/>
-      </td>
-      <td>{{name}}</td>
-      <td>${{reward}}</td>
-    </tr>
-    {{/each}}
-  </tbody>
-</table>
-{{/if}}
+  <h5>Your balance is: $<span id="balance">{{balance}}</span></h5>
+  {{#if habits}}
+    <h5>Your habits:</h5>
+      {{#each habits}}
+    <div class="row">
+        <div class="column">
+          <input class="completeHabit" type="checkbox" value="{{id}}"
+           data-reward="{{reward}}" {{isComplete this}}/>
+          {{name}} ${{reward}}
+          <form style="display:none;">
+            <fieldset>
+              <label for="nameField">Name</label>
+              <input placeholder="{{name}}" id="nameField" type="text">
+              <label>Reward</label>
+              <input placeholder="{{reward}}" id="nameField" type="number">
+            </fieldset>
+          </form>
+        </div>
+    </div>
+      {{/each}}
+  {{/if}}
