@@ -74,6 +74,56 @@ Promise.all(promises).then(function (values) {
  * have been loaded into the DOM */
 function documentReady() {
   /* Event listeners for checkboxes */
+  var editButtons = document.getElementsByClassName('editHabit');
+  for (var i = 0; i < editButtons.length; i++) {
+    editButtons[i].addEventListener('click', function (event) {
+      var form = event.currentTarget.nextElementSibling;
+      if (form.style.display === '')
+        form.style.display = 'none';
+      else
+        form.style.display = '';
+    });
+  }
+
+  var cancelButtons = document.getElementsByClassName('cancel');
+  for (var i = 0; i < cancelButtons.length; i++) {
+    cancelButtons[i].addEventListener('click', function (event) {
+      event.preventDefault(); /* Prevent button from reloading page */
+      event.currentTarget.parentNode.parentNode.style.display = 'none';
+    });
+  }
+
+  /*
+  var forms = document.getElementsByClassName('form');
+  for (var i = 0; i < forms.length; i++) {
+    forms[i].addEventListener('submit', function (event) {
+      event.preventDefault();
+    });
+  }
+  */
+
+  var submitButtons = document.getElementsByClassName('submitHabit');
+  for (var i = 0; i < submitButtons.length; i++) {
+    submitButtons[i].addEventListener('click', function (event) {
+      event.preventDefault();
+      var form = event.currentTarget.parentNode.parentNode;
+      console.log(form);
+      console.log(form.dataset.habitid);
+      var habitId = form.dataset.habitid;
+      var body = {};
+      body.name = form.querySelector('.nameField').value;
+      body.reward = form.querySelector('.rewardField').value;
+      console.log(body);
+      httpPromise('edit-habit/' + habitId, 'POST', 'application/json', body)
+        .then(function (result) {
+          form.style.display = 'none';
+          console.log('updated habit!!');
+        }).catch(function (err) {
+          console.log(err)
+        });
+    });
+  }
+
   var checkboxes = document.getElementsByClassName('completeHabit');
   for (var i = 0; i < checkboxes.length; i++) {
     checkboxes[i].addEventListener("click", function(event) {

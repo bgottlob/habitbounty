@@ -7,14 +7,19 @@
     <div class="row">
         <div class="column">
           <input class="completeHabit" type="checkbox" value="{{id}}"
-           data-reward="{{reward}}" {{isComplete this}}/>
+           {{isComplete this}}/>
           {{name}} ${{reward}}
-          <form style="display:none;">
+          <button class="button button-clear editHabit">Edit</button>
+          <!-- TODO: Move style to a CSS file -->
+          <form style="display:none;" data-habitid="{{id}}">
             <fieldset>
-              <label for="nameField">Name</label>
-              <input placeholder="{{name}}" id="nameField" type="text">
+              <label>Name</label>
+              <input class="nameField" type="text" required>
               <label>Reward</label>
-              <input placeholder="{{reward}}" id="nameField" type="number">
+              <input class="rewardField" type="number" min="0" step="0.05"
+               required>
+              <button class="button button-outline cancel">Cancel</button>
+              <input class="button submitHabit" value="Submit" type="Submit">
             </fieldset>
           </form>
         </div>

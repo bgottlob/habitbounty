@@ -126,8 +126,9 @@ router.add('POST', /^\/change-balance$/, (request, response) => {
 
 /* Update basic info about a habit -- but not the log -- never trust the client
  * Ignores everything in the request body except for the name and reward */
-router.add('POST', /^\/info-habit\/(\w+)/, (request, response, docId) => {
+router.add('POST', /^\/edit-habit\/(\w+)/, (request, response, docId) => {
   loader.getDoc(docId).then(function(doc) {
+    console.log(request.body);
     var habitDelta = new Habit(request.body.name, request.body.reward);
     return loader.updateDoc(Object.assign(doc, habitDelta.toDoc()));
   }).then(function (result) {
