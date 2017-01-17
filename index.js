@@ -111,10 +111,13 @@ router.add('POST', /^\/complete-habit$/, (request, response) => {
 });
 
 router.add('POST', /^\/change-balance$/, (request, response) => {
-  const changeAmt = request.body.changeAmt;
+  const changeAmt = Number(request.body.changeAmt);
+  console.log(changeAmt);
   loader.getDoc('balance').then(function (doc) {
     var balance = new Balance(doc.amount);
+    console.log(balance);
     balance.changeAmountBy(changeAmt);
+    console.log(balance);
     return loader.updateDoc(Object.assign(doc, balance.toDoc()));
   }).then(function (result) {
     return response.end(JSON.stringify(result));
@@ -128,11 +131,19 @@ router.add('POST', /^\/change-balance$/, (request, response) => {
  * Ignores everything in the request body except for the name and reward */
 router.add('POST', /^\/edit-habit\/(\w+)/, (request, response, docId) => {
   loader.getDoc(docId).then(function(doc) {
-    console.log(request.body);
-    var habitDelta = new Habit(request.body.name, request.body.reward);
-    return loader.updateDoc(Object.assign(doc, habitDelta.toDoc()));
+    var delta = {
+      name: request.body.name,
+      reward: request.body.reward
+    };
+    /* If delta data went into the Habit constructor, the habit's log would
+     * be cleared; we don't want that */
+    return loader.updateDoc(Object.assign(doc, delta));
   }).then(function (result) {
-    response.end(JSON.stringify(result));
+    /* Document successfully updated; now get the updated doc and send it
+     * back to the client */
+    return loader.getDoc(docId);
+  }).then(function (doc) {
+    response.end(JSON.stringify(doc));
   }).catch(function (err) {
     response.statusCode = 400;
     response.end(JSON.stringify(err));
@@ -144,6 +155,7 @@ router.add('PUT', /^\/habit$/, function (request, response) {
   const habit = new Habit(request.body.name, request.body.reward);
   loader.createHabit(habit).then(function(result) {
     response.statusCode = 200;
+    console.log(result);
     response.end(JSON.stringify(result));
   }).catch(function (err) {
     response.statusCode = 400;

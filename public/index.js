@@ -50,7 +50,7 @@ Handlebars.registerHelper('isComplete', function(obj) {
 var promises = [ templatePromise(), habitPromise(), balancePromise() ];
 
 Promise.all(promises).then(function (values) {
-  console.log('all came back!');
+  console.log(values[1]);
   var html = values[0]({
     habits: values[1],
     balance: values[2].amount
@@ -93,33 +93,69 @@ function documentReady() {
     });
   }
 
-  /*
-  var forms = document.getElementsByClassName('form');
-  for (var i = 0; i < forms.length; i++) {
-    forms[i].addEventListener('submit', function (event) {
+  document.getElementById('createHabit').addEventListener('click',
+    function(event) {
       event.preventDefault();
+      document.getElementById('createHabitForm').style.display = '';
     });
-  }
-  */
+
+  document.getElementById('createHabitSubmit').addEventListener('click',
+    function(event) {
+      event.preventDefault();
+      var form = document.getElementById('createHabitForm');
+      var body = {
+        name: form.querySelector('.nameField').value,
+        reward: form.querySelector('.rewardField').value
+      };
+      httpPromise('habit', 'PUT', 'application/json', body)
+        .then(function (result) {
+          form.style.display = 'none';
+          console.log(JSON.parse(result));
+        }).catch(function (err) {
+          console.log(err);
+        });
+    });
+
+  document.getElementById('editBalance').addEventListener('click',
+    function(event) {
+      event.preventDefault();
+      document.getElementById('balanceForm').style.display = '';
+    });
+
+  document.getElementById('balanceSubmit').addEventListener('click',
+    function(event) {
+      event.preventDefault();
+      var form = document.getElementById('balanceForm');
+      var body = {
+        changeAmt: Number(document.getElementById('balanceField').value)
+      };
+      httpPromise('change-balance', 'POST', 'application/json', body)
+        .then(function (result) {
+          form.style.display = 'none';
+          console.log(JSON.parse(result));
+        }).catch(function (err) {
+          console.log(err);
+        });
+    });
 
   var submitButtons = document.getElementsByClassName('submitHabit');
   for (var i = 0; i < submitButtons.length; i++) {
     submitButtons[i].addEventListener('click', function (event) {
       event.preventDefault();
       var form = event.currentTarget.parentNode.parentNode;
-      console.log(form);
-      console.log(form.dataset.habitid);
       var habitId = form.dataset.habitid;
       var body = {};
       body.name = form.querySelector('.nameField').value;
       body.reward = form.querySelector('.rewardField').value;
-      console.log(body);
       httpPromise('edit-habit/' + habitId, 'POST', 'application/json', body)
         .then(function (result) {
           form.style.display = 'none';
-          console.log('updated habit!!');
+          result = JSON.parse(result);
+          var enclosingDiv = form.parentNode;
+          enclosingDiv.querySelector('.nameLabel').innerHTML = result.name;
+          enclosingDiv.querySelector('.rewardLabel').innerHTML = result.reward;
         }).catch(function (err) {
-          console.log(err)
+          console.log(err);
         });
     });
   }
