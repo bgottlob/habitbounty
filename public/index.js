@@ -122,21 +122,20 @@ function documentReady() {
       document.getElementById('balanceForm').style.display = '';
     });
 
-  document.getElementById('balanceSubmit').addEventListener('click',
-    function(event) {
-      event.preventDefault();
-      var form = document.getElementById('balanceForm');
-      var body = {
-        changeAmt: Number(document.getElementById('balanceField').value)
-      };
-      httpPromise('change-balance', 'POST', 'application/json', body)
-        .then(function (result) {
-          form.style.display = 'none';
-          console.log(JSON.parse(result));
-        }).catch(function (err) {
-          console.log(err);
-        });
-    });
+  var balanceForm = document.getElementById('balanceForm');
+  balanceForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+    var body = { changeAmt: Number(balanceForm.delta.value) };
+    httpPromise('change-balance', 'POST', 'application/json', body)
+      .then(function (result) {
+        balanceForm.style.display = 'none';
+        return balancePromise();
+      }).then(function (result) {
+        document.getElementById('balance').innerHTML = result.amount;
+      }).catch(function (err) {
+        console.log(err);
+      });
+  });
 
   var submitButtons = document.getElementsByClassName('submitHabit');
   for (var i = 0; i < submitButtons.length; i++) {
