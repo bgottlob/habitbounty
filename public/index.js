@@ -40,30 +40,45 @@ Handlebars.registerHelper('isComplete', function(obj) {
 });
 
 /* Invoke the request promises needed to load the page */
-var promises = [ templatePromise(), habitPromise(), balancePromise() ];
-Promise.all(promises).then(function (values) {
-  /* Build the HTML using the compiled Handlebars template with the habit
-   * and balance data */
-  var html = values[0]({
-    habits: values[1],
-    balance: values[2].amount
+function loadPage() {
+  var promises = [ templatePromise(), habitPromise(), balancePromise() ];
+  Promise.all(promises).then(function (values) {
+    /* Build the HTML using the compiled Handlebars template with the habit
+     * and balance data */
+    var html = values[0]({
+      habits: values[1],
+      balance: values[2].amount
+    });
+    /* Create a div with the built HTML and append it to the HTML body */
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    document.getElementsByTagName('body')[0].appendChild(div);
+    documentReady();
+  }).catch(function (err) {
+    /* Build error HTML and append to the body if any promise was rejected */
+    var html = "<h2>Error</h2><p>Sorry, your content wan't found!</p>";
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    document.getElementsByTagName('body')[0].appendChild(div);
+    console.log(err);
+    console.log(err.stack);
   });
-  /* Create a div with the built HTML and append it to the HTML body */
-  var div = document.createElement('div');
-  div.innerHTML = html;
-  document.getElementsByTagName('body')[0].appendChild(div);
-  documentReady();
-}).catch(function (err) {
-  /* Build error HTML and append to the body if any promise was rejected */
-  var html = "<h2>Error</h2><p>Sorry, your content wan't found!</p>";
-  var div = document.createElement('div');
-  div.innerHTML = html;
-  document.getElementsByTagName('body')[0].appendChild(div);
-  console.log(err);
-  console.log(err.stack);
-});
+}
 
-/* TODO: wrap toggling a checkbox into a shared client side function */
+function reloadPage() {
+  /* Deletes the div of generated content in the body, then reloads it all */
+  var body = document.getElementsByTagName('body')[0]
+  /* Find and remove all DIVs */
+  for (var i = 0; i < body.childNodes.length; i++) {
+    if (body.childNodes[i].nodeName === 'DIV') {
+      body.removeChild(body.childNodes[i]);
+    }
+  }
+  loadPage();
+}
+
+/* Load page initially */
+loadPage();
 
 /* Will only run once the handlebars template is filled out and the elements
  * have been loaded into the DOM */
@@ -104,8 +119,7 @@ function documentReady() {
     httpPromise('habit', 'PUT', 'application/json', body)
       .then(function (result) {
         createHabitForm.style.display = 'none';
-        console.log(JSON.parse(result));
-        /* TODO: reload all habits to get the new one in the list */
+        reloadPage();
       }).catch(function (err) {
         console.log(err);
       });
