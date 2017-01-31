@@ -169,6 +169,23 @@ function documentReady() {
     });
   }
 
+  var deleteHabitButtons = document.getElementsByClassName('deleteHabit');
+  for (var i = 0; i < deleteHabitButtons.length; i++) {
+    deleteHabitButtons[i].addEventListener('click', function (event) {
+      var button = event.currentTarget;
+      /* TODO: Need defaults in httpPromise in case body is not provided */
+      if (confirm("Are you sure you want to delete the habit?")) {
+        httpPromise('delete-habit/' + button.dataset.habitid, 'DELETE', 'text/plain', {}).then(
+          function(result) {
+            console.log(result);
+            reloadPage();
+          }).catch(function (err) {
+            console.log(err);
+          });
+      }
+    });
+  }
+
   /* Helper functions for dealing with checkboxes */
   function uncheck(checkbox) {
     checkbox.removeAttribute('checked');
