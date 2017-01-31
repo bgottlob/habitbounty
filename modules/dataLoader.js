@@ -52,7 +52,19 @@ loader.createBalance = function(balance) {
 /* Assumes the doc object contains the _id and _rev, or else couch will give
  * an error */
 loader.updateDoc = function (doc) {
+  /* TODO: I'm pretty sure this extra layer of calls with resolve and reject
+   * is pointless. Test without it and update it anywhere else in this module */
   return db.put(doc).then(function (response) {
+    return Promise.resolve(response);
+  }).catch(function (err) {
+    return Promise.reject(err);
+  });
+};
+
+/* Assumes the doc object contains the _id and _rev, or else couch will give
+ * an error */
+loader.deleteDoc = function(doc) {
+  return db.remove(doc).then(function (response) {
     return Promise.resolve(response);
   }).catch(function (err) {
     return Promise.reject(err);

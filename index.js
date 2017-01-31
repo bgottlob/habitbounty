@@ -150,6 +150,19 @@ router.add('POST', /^\/edit-habit\/(\w+)/, (request, response, docId) => {
   });
 });
 
+router.add('DELETE', /^\/delete-habit\/(\w+)/,
+  function (request, response, docId) {
+    loader.getDoc(docId).then(function (doc) {
+      return loader.deleteDoc(doc);
+    }).then(function (result) {
+      response.end(JSON.stringify(result));
+    }).catch(function (err) {
+      response.statusCode = 400;
+      response.end(JSON.stringify(err));
+    });
+  }
+);
+
 /* Creates a new habit */
 router.add('PUT', /^\/habit$/, function (request, response) {
   const habit = new Habit(request.body.name, request.body.reward);
