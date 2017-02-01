@@ -5,8 +5,8 @@
 /* Checks whether two arrays are equal.
  * Used to check date equality for date arrays in the log */
 Array.prototype.isSame = function(other) {
-  var acc = this.length == other.length;
-  for (var i = 0; i < this.length; i++) {
+  let acc = this.length == other.length;
+  for (let i = 0; i < this.length; i++) {
     if (!acc) return acc;
     acc = acc && this[i] == other[i];
   }
@@ -18,3 +18,4 @@ Array.prototype.isSame = function(other) {
 Date.prototype.toLocalArray = function() {
   return [this.getFullYear(), this.getMonth(), this.getDate()]
 };
+

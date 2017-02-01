@@ -1,4 +1,4 @@
-var loader = module.exports;
+let loader = module.exports;
 
 const PouchDB = require('pouchdb');
 const Habit = require('./sharedLibs/habit.js');
@@ -6,7 +6,7 @@ const Balance = require('./sharedLibs/balance.js');
 
 const url = 'http://localhost';
 const port = 5984;
-var db = new PouchDB(url + ':' + port + '/habitbounty', {
+let db = new PouchDB(url + ':' + port + '/habitbounty', {
   auth: {
     username: process.env.COUCH_USER,
     password: process.env.COUCH_PASS
@@ -52,8 +52,20 @@ loader.createBalance = function(balance) {
 /* Assumes the doc object contains the _id and _rev, or else couch will give
  * an error */
 loader.updateDoc = function (doc) {
-  return db.put(doc).then(function (response) {
-    return Promise.resolve(response);
+  /* TODO: I'm pretty sure this extra layer of calls with resolve and reject
+   * is pointless. Test without it and update it anywhere else in this module */
+  return db.put(doc).then(function (result) {
+    return Promise.resolve(result);
+  }).catch(function (err) {
+    return Promise.reject(err);
+  });
+};
+
+/* Assumes the doc object contains the _id and _rev, or else couch will give
+ * an error */
+loader.deleteDoc = function(doc) {
+  return db.remove(doc).then(function (result) {
+    return Promise.resolve(result);
   }).catch(function (err) {
     return Promise.reject(err);
   });
@@ -67,15 +79,11 @@ loader.getDoc = function(docId) {
   });
 };
 
-/* TODO: get rid of updateHabit -- will need to remove call in root/index.js */
-loader.updateHabit = loader.updateDoc;
-loader.getHabit = loader.getDoc;
-
 loader.allHabits = function() {
   return db.query('queries/all_habits').then(function (result) {
     resList = [];
     result.rows.forEach(function (row) {
-      var habit = new Habit(row.value.name, row.value.reward, row.value.log);
+      let habit = new Habit(row.value.name, row.value.reward, row.value.log);
       habit.id = row.id;
       resList.push(habit);
     });
@@ -91,8 +99,8 @@ const mapAllHabits = function(doc) {
   }
 };
 
-var designDocId = '_design/queries';
-var designDoc = {
+let designDocId = '_design/queries';
+let designDoc = {
   _id: designDocId,
   views: {
     all_habits: {
@@ -108,7 +116,7 @@ pushDesignDoc = () => {
     /* Design doc exists, get the revision number and push the updated doc */
     designDoc._rev = doc._rev;
     return db.put(designDoc);
-  }).then(function (response) {
+  }).then(function (result) {
     console.log('The design doc ' + '"' + designDocId + '" has been updated!');
   }).catch(function (err) {
     if (err.error === 'not_found') {

@@ -6,105 +6,116 @@ const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/sharedLibs/habit.js');
 const Balance = require('./modules/sharedLibs/balance.js');
 
-var router = new Router();
-var fileServer = ecstatic({root: __dirname + '/public'});
+let router = new Router();
+let fileServer = ecstatic({root: __dirname + '/public'});
 
 /* For serving files that come from node modules */
-var nodeModServer = ecstatic({root: __dirname + '/node_modules'});
+let nodeModServer = ecstatic({root: __dirname + '/node_modules'});
 
-/* For service files that are shared between server and client code */
-var sharedLibServer = ecstatic({root: __dirname + '/modules/sharedLibs'});
+/* For serving files that are shared between server and client code */
+let sharedLibServer = ecstatic({root: __dirname + '/modules/sharedLibs'});
 
-/* Compile and serve the HTML for the home page, a list of all habits
+/* Compile and serve the client for the home page, a list of all habits
  * in the system */
-router.add('GET', /^\/$/, (request, response) => {
+router.add('GET', /^\/$/, function (request, response) {
   request.url = '/index.html';
   fileServer(request, response);
 });
 
+/* Serve a file from an npm module to the client */
 router.add('GET', /^\/lib\/(.+)$/, function (request, response, filename) {
+  /* Mapping of file names to their path relative to /node_modules */
   nodeModFiles = {
     'handlebars.min.js': '/handlebars/dist/handlebars.min.js',
     'milligram.min.css': '/milligram/dist/milligram.min.css',
     'normalize.css': '/normalize.css/normalize.css'
   };
   request.url = nodeModFiles[filename];
-  /* TODO: send a file not found error directly to browser, don't put into the
-   * library file server */
-  if (!request.url) request.url = 'notafile';
-  nodeModServer(request, response);
+  if (!request.url) {
+    response.statusCode = 404;
+    response.end('File not found!');
+  } else
+    nodeModServer(request, response);
 });
 
+/* Serve a file that is shared by both client and server code filenames sent
+ * to this route must be relative to /modules/sharedLibs */
 router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename) {
-  console.log(request.url);
   request.url = '/' + filename;
-  console.log(request.url);
   sharedLibServer(request, response);
 });
 
-/* Return a list of all habits in JSON for any client to consume */
-router.add('GET', /^\/all-habits$/, function (request, response) {
-  loader.allHabits().then(function (results) {
+function simpleGET(loaderPromise, response) {
+  loaderPromise.then(function (results) {
     response.end(JSON.stringify(results));
   }).catch(function (err) {
     response.statusCode = 404;
     response.end(JSON.stringify(err));
   });
+}
+
+/* Return a list of all habits in JSON for any client to consume */
+router.add('GET', /^\/all-habits$/, function (request, response) {
+  simpleGET(loader.allHabits(), response);
 });
 
-router.add('GET', /^\/habit\/(\w+)/, (request, response, docId) => {
-  loader.getHabit(docId).then(function (doc) {
-    response.end(JSON.stringify(doc));
-  }).catch(function (err) {
-    response.statusCode = 404;
-    response.end(JSON.stringify(err));
-  });
+/* Get the info for a single habit given the habit's document id */
+router.add('GET', /^\/habit\/(\w+)/, function (request, response, docId) {
+  simpleGET(loader.getDoc(docId), response);
 });
 
-router.add('GET', /^\/balance/, (request, response) => {
-  console.log('getting balance');
-  loader.getHabit('balance').then(function (doc) {
-    console.log(doc);
-    response.end(JSON.stringify(doc));
-  }).catch(function (err) {
-    response.statusCode = 404;
-    response.end(JSON.stringify(err));
-  });
+/* Get the info for the balance */
+router.add('GET', /^\/balance/, function (request, response) {
+  simpleGET(loader.getDoc('balance'), response);
 });
 
-/* Route: /complete-habit
- * Body (to complete habits on Jan 20, 2017:
- * { "id": "<couch_id>", "date": [2017, 0, 20], "set": "true" }, */
-router.add('POST', /^\/complete-habit$/, (request, response) => {
-  const docId = request.body.id;
+/* Completes a habit: Adds the provided date array to the habit's log and
+ * changes the balance appropriately */
+router.add('POST', /^\/complete-habit$/, function (request, response) {
+  const habitId = request.body.id;
   const dateArray = request.body.date;
   const set = request.body.set;
-  loader.getHabit(docId).then(function (doc) {
-    var habit = new Habit(doc.name, doc.reward, doc.log);
-    if (set)
-      habit.complete(dateArray);
-    else
-      habit.uncomplete(dateArray);
-    return Promise.resolve(Object.assign(doc, habit.toDoc()));
-  }).then(function (doc) {
-    return loader.updateHabit(doc);
-  }).then(function (result) {
-    return response.end(JSON.stringify(result));
-  }).catch(function (err) {
-    response.statusCode = 400;
-    return response.end(JSON.stringify(err));
-  });
+  Promise.all([loader.getDoc(habitId), loader.getDoc('balance')])
+    .then(function (docs) {
+      let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
+      let balance = new Balance(docs[1].amount);
+      /* (Un)complete the habit and modify the balance */
+      if (set) {
+        habit.complete(dateArray);
+        balance.changeAmountBy(habit.reward);
+      } else {
+        habit.uncomplete(dateArray);
+        balance.changeAmountBy(-(habit.reward));
+      }
+      /* Push updates to the database */
+      return Promise.all([
+        loader.updateDoc(Object.assign(docs[0], habit.toDoc())),
+        loader.updateDoc(Object.assign(docs[1], balance.toDoc()))
+      ]);
+    }).then(function (results) {
+      /* Both documents were successfully udpated, get the updated
+       * versions of them to prepare response */
+      return Promise.all([loader.getDoc(habitId), loader.getDoc('balance')]);
+    }).then(function (docs) {
+      let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
+      let balance = new Balance(docs[1].amount);
+      return response.end(JSON.stringify({
+        completed: habit.isComplete(dateArray),
+        newBalance: balance.amount
+      }));
+    }).catch(function (err) {
+      console.log(err);
+      response.statusCode = 400;
+      return response.end(JSON.stringify(err));
+    });
 });
 
-router.add('POST', /^\/change-balance$/, (request, response) => {
-  const changeAmt = request.body.changeAmt;
-  console.log('Changing balance by ' + changeAmt);
+router.add('POST', /^\/change-balance$/, function (request, response) {
+  const changeAmt = Number(request.body.changeAmt);
   loader.getDoc('balance').then(function (doc) {
-    var balance = new Balance(doc.amount);
+    let balance = new Balance(doc.amount);
     balance.changeAmountBy(changeAmt);
-    return Promise.resolve(Object.assign(doc, balance.toDoc()));
-  }).then(function (doc) {
-    return loader.updateDoc(doc);
+    return loader.updateDoc(Object.assign(doc, balance.toDoc()));
   }).then(function (result) {
     return response.end(JSON.stringify(result));
   }).catch(function (err) {
@@ -115,82 +126,73 @@ router.add('POST', /^\/change-balance$/, (request, response) => {
 
 /* Update basic info about a habit -- but not the log -- never trust the client
  * Ignores everything in the request body except for the name and reward */
-router.add('POST', /^\/info-habit\/(\w+)/, (request, response, docId) => {
-  loader.getHabit(docId, (err, doc) => {
-    if (err) {
-      response.statusCode = 404;
-      response.end(JSON.stringify(err));
-    } else {
-      /* TODO: Coerce the types of the body arguments to check for potential
-       * errors there; also check if the arguments exist */
-      /* TODO: Maybe just always pass these arguments to the Habit constructor
-       * so that the Habit prototype can handle santization of the data */
-      const updatedDoc = Object.assign(doc, {
-        name: String(request.body.name),
-        reward: Number(request.body.reward)
-      });
-      loader.updateHabit(updatedDoc, (err, result) => {
-        if (err) {
-          response.statusCode = 400;
-          response.end(JSON.stringify(err));
-        }
-        else response.end(JSON.stringify(result));
-      });
-    }
+router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
+  loader.getDoc(docId).then(function(doc) {
+    let delta = {
+      name: request.body.name,
+      reward: request.body.reward
+    };
+    /* If delta data went into the Habit constructor, the habit's log would
+     * be cleared; we don't want that */
+    return loader.updateDoc(Object.assign(doc, delta));
+  }).then(function (result) {
+    /* Document successfully updated; now get the updated doc and send it
+     * back to the client */
+    return loader.getDoc(docId);
+  }).then(function (doc) {
+    response.end(JSON.stringify(doc));
+  }).catch(function (err) {
+    response.statusCode = 400;
+    response.end(JSON.stringify(err));
   });
 });
 
-router.add('PUT', /^\/habit$/, (request, response) => {
-  /* TODO: Catch potential issue -- name and reward must be present in
-   * request -- maybe even find spurious attributes in JSON */
-  var err = null;
-  missing = [];
-  if (!request.body.name)
-    missing.push("name");
-  if (!request.body.reward)
-    missing.push("reward");
-
-  if (missing.length > 0) {
-    response.statusCode = 400;
-    response.end(JSON.stringify({
-      message: 'missing attribute(s) ' + missing.join(',')
-    }));
-  } else if (isNaN(request.body.reward)) {
-    response.statusCode = 400;
-    response.end(JSON.stringify({
-      message: 'reward is not a number'
-    }));
-  } else {
-    const habit = new Habit(request.body.name, request.body.reward);
-    loader.createHabit(habit, (err, result) => {
-      if (err) {
-        response.statusCode = 400;
-        response.end(JSON.stringify(err));
-      } else {
-        response.statusCode = 200;
-        /* TODO: Make the result a JSON string */
-        response.end(JSON.stringify(result));
-      }
+router.add('DELETE', /^\/delete-habit\/(\w+)/,
+  function (request, response, docId) {
+    loader.getDoc(docId).then(function (doc) {
+      return loader.deleteDoc(doc);
+    }).then(function (result) {
+      response.end(JSON.stringify(result));
+    }).catch(function (err) {
+      response.statusCode = 400;
+      response.end(JSON.stringify(err));
     });
   }
+);
+
+/* Creates a new habit */
+router.add('PUT', /^\/habit$/, function (request, response) {
+  const habit = new Habit(request.body.name, request.body.reward);
+  loader.createHabit(habit).then(function(result) {
+    response.statusCode = 200;
+    response.end(JSON.stringify(result));
+  }).catch(function (err) {
+    response.statusCode = 400;
+    response.end(JSON.stringify(err));
+  });
 });
 
-http.createServer(function(request, response) {
-  var body = [];
-  request.on('data', (chunk) => {
+http.createServer(function (request, response) {
+  let body = [];
+  request.on('data', function (chunk) {
     /* Build body of request based on incoming data chunks */
     body.push(chunk);
-  }).on('end', () => {
+  }).on('end', function () {
     /* When there are no more data chunks, turn data into a string
      * and set to the request body property */
     if (body.length > 0) {
       body = Buffer.concat(body).toString();
       /* TODO: Catch error - server dies if JSON doesn't parse */
-      request.body = JSON.parse(body);
+      try {
+        request.body = JSON.parse(body);
+      } catch (e) {
+        console.log('This body could not be parsed into JSON:\n' + body);
+        request.body = {};
+      }
     }
     /* Hand request off to the router */
     if (!router.resolve(request, response)) {
       fileServer(request, response);
     }
   });
-}).listen(8080);
+}).listen(Number(process.argv[2]));
