@@ -6,18 +6,18 @@ const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/sharedLibs/habit.js');
 const Balance = require('./modules/sharedLibs/balance.js');
 
-var router = new Router();
-var fileServer = ecstatic({root: __dirname + '/public'});
+let router = new Router();
+let fileServer = ecstatic({root: __dirname + '/public'});
 
 /* For serving files that come from node modules */
-var nodeModServer = ecstatic({root: __dirname + '/node_modules'});
+let nodeModServer = ecstatic({root: __dirname + '/node_modules'});
 
 /* For serving files that are shared between server and client code */
-var sharedLibServer = ecstatic({root: __dirname + '/modules/sharedLibs'});
+let sharedLibServer = ecstatic({root: __dirname + '/modules/sharedLibs'});
 
 /* Compile and serve the client for the home page, a list of all habits
  * in the system */
-router.add('GET', /^\/$/, (request, response) => {
+router.add('GET', /^\/$/, function (request, response) {
   request.url = '/index.html';
   fileServer(request, response);
 });
@@ -71,14 +71,14 @@ router.add('GET', /^\/balance/, function (request, response) {
 
 /* Completes a habit: Adds the provided date array to the habit's log and
  * changes the balance appropriately */
-router.add('POST', /^\/complete-habit$/, (request, response) => {
+router.add('POST', /^\/complete-habit$/, function (request, response) {
   const habitId = request.body.id;
   const dateArray = request.body.date;
   const set = request.body.set;
   Promise.all([loader.getDoc(habitId), loader.getDoc('balance')])
     .then(function (docs) {
-      var habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
-      var balance = new Balance(docs[1].amount);
+      let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
+      let balance = new Balance(docs[1].amount);
       /* (Un)complete the habit and modify the balance */
       if (set) {
         habit.complete(dateArray);
@@ -97,8 +97,8 @@ router.add('POST', /^\/complete-habit$/, (request, response) => {
        * versions of them to prepare response */
       return Promise.all([loader.getDoc(habitId), loader.getDoc('balance')]);
     }).then(function (docs) {
-      var habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
-      var balance = new Balance(docs[1].amount);
+      let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
+      let balance = new Balance(docs[1].amount);
       return response.end(JSON.stringify({
         completed: habit.isComplete(dateArray),
         newBalance: balance.amount
@@ -110,14 +110,11 @@ router.add('POST', /^\/complete-habit$/, (request, response) => {
     });
 });
 
-router.add('POST', /^\/change-balance$/, (request, response) => {
+router.add('POST', /^\/change-balance$/, function (request, response) {
   const changeAmt = Number(request.body.changeAmt);
-  console.log(changeAmt);
   loader.getDoc('balance').then(function (doc) {
-    var balance = new Balance(doc.amount);
-    console.log(balance);
+    let balance = new Balance(doc.amount);
     balance.changeAmountBy(changeAmt);
-    console.log(balance);
     return loader.updateDoc(Object.assign(doc, balance.toDoc()));
   }).then(function (result) {
     return response.end(JSON.stringify(result));
@@ -129,9 +126,9 @@ router.add('POST', /^\/change-balance$/, (request, response) => {
 
 /* Update basic info about a habit -- but not the log -- never trust the client
  * Ignores everything in the request body except for the name and reward */
-router.add('POST', /^\/edit-habit\/(\w+)/, (request, response, docId) => {
+router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
   loader.getDoc(docId).then(function(doc) {
-    var delta = {
+    let delta = {
       name: request.body.name,
       reward: request.body.reward
     };
@@ -168,7 +165,6 @@ router.add('PUT', /^\/habit$/, function (request, response) {
   const habit = new Habit(request.body.name, request.body.reward);
   loader.createHabit(habit).then(function(result) {
     response.statusCode = 200;
-    console.log(result);
     response.end(JSON.stringify(result));
   }).catch(function (err) {
     response.statusCode = 400;
@@ -176,8 +172,8 @@ router.add('PUT', /^\/habit$/, function (request, response) {
   });
 });
 
-http.createServer(function(request, response) {
-  var body = [];
+http.createServer(function (request, response) {
+  let body = [];
   request.on('data', function (chunk) {
     /* Build body of request based on incoming data chunks */
     body.push(chunk);

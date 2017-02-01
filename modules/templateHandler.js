@@ -11,14 +11,14 @@ module.exports = function(path, context, callback) {
       callback('Requested template is a directory')
     }
     else {
-      var fileStream = fs.createReadStream(path);
-      var htmlString = '';
+      let fileStream = fs.createReadStream(path);
+      let htmlString = '';
       fileStream.on('data', (chunk) => {
         htmlString += chunk;
       });
       fileStream.on('end', () => {
         /* TODO: Do I have to catch errors in here? */
-        var template = Handlebars.compile(htmlString);
+        let template = Handlebars.compile(htmlString);
         callback(null, template(context))
       });
     }
