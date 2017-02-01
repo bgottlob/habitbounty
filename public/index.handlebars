@@ -1,62 +1,20 @@
 <h4>Welcome to HabitBounty</h4>
-
-
 {{#if error}}<h6>{{error}}</h6>{{/if}}
-  <h5>Your balance is: $<span id="balance">{{balance}}</span></h5>
-  <button class="button button-clear" id="changeBalance">Edit</button>
-  <form style="display:none;" id="balanceForm">
-    <fieldset>
-      <label>Change Balance By</label>
-      <input name="delta" value="1" type="number" step="0.01">
-      <button class="button button-outline cancel">Cancel</button>
-      <input class="button" value="Submit" type="Submit">
-    </fieldset>
-  </form>
-
-
-  {{#if habits}}
-    <h5>Your habits:</h5>
-      {{#each habits}}
-    <div class="row">
-        <div class="column">
-          <input class="completeHabit" type="checkbox" value="{{id}}"
-           {{isComplete this}}/>
-          <span class="nameLabel">{{name}}</span>
-          $<span class="rewardLabel">{{reward}}</span>
-          <button class="button button-clear editHabit">Edit</button>
-          <button style="color:red;" data-habitid="{{id}}"
-          class="button button-clear deleteHabit">Delete</button>
-          <!-- TODO: Move style to a CSS file -->
-          <form class="editHabitForm" style="display:none;" data-habitid="{{id}}">
-            <fieldset>
-              <label>Name</label>
-              <input name="name" type="text" value="{{name}}" required>
-              <label>Reward</label>
-              <input name="reward" type="number" min="0.01" step="0.01"
-               value="{{reward}}" required>
-              <button class="button button-outline cancel">Cancel</button>
-              <input class="button" value="Submit" type="Submit">
-            </fieldset>
-          </form>
-        </div>
-    </div>
-      {{/each}}
-  {{/if}}
-
-
-<div class="row">
-    <div class="column">
-      <button class="button" id="createHabit">Create Habit</button>
-      <form style="display:none;" id="createHabitForm">
-        <fieldset>
-          <label>Name</label>
-          <input name="name" type="text" value="{{name}}" required>
-          <label>Reward</label>
-          <input name="reward" type="number" min="0.01" step="0.01"
-           value="{{reward}}" required>
-          <button class="button button-outline cancel">Cancel</button>
-          <input class="button" value="Submit" type="Submit">
-        </fieldset>
-      </form>
-    </div>
-</div>
+<h5>Your balance is: $<span id="balance">{{balance}}</span></h5>
+{{#if habits}}
+<h5>Your habits:</h5>
+<table>
+  <tbody>
+    {{#each habits}}
+    <tr>
+      <td>
+        <input class="completeHabit" type="checkbox" value="{{id}}"
+         data-reward="{{reward}}" {{isComplete this}}/>
+      </td>
+      <td>{{name}}</td>
+      <td>${{reward}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+{{/if}}

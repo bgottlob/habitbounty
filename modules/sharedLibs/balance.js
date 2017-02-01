@@ -1,12 +1,12 @@
 function Balance(amount) {
-  if (amount) this.amount = Number(amount);
+  if (amount) this.amount = amount;
   else this.amount = 0;
 }
 
 Balance.prototype.toDoc = function() {
   return {
     _id: 'balance',
-    amount: Number(this.amount),
+    amount: this.amount,
     type: 'balance'
   };
 };
