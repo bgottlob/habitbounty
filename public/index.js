@@ -41,23 +41,23 @@ Handlebars.registerHelper('isComplete', function(obj) {
 
 /* Invoke the request promises needed to load the page */
 function loadPage() {
-  var promises = [ templatePromise(), habitPromise(), balancePromise() ];
+  let promises = [ templatePromise(), habitPromise(), balancePromise() ];
   Promise.all(promises).then(function (values) {
     /* Build the HTML using the compiled Handlebars template with the habit
      * and balance data */
-    var html = values[0]({
+    let html = values[0]({
       habits: values[1],
       balance: values[2].amount
     });
     /* Create a div with the built HTML and append it to the HTML body */
-    var div = document.createElement('div');
+    let div = document.createElement('div');
     div.innerHTML = html;
     document.getElementsByTagName('body')[0].appendChild(div);
     documentReady();
   }).catch(function (err) {
     /* Build error HTML and append to the body if any promise was rejected */
-    var html = "<h2>Error</h2><p>Sorry, your content wan't found!</p>";
-    var div = document.createElement('div');
+    let html = "<h2>Error</h2><p>Sorry, your content wan't found!</p>";
+    let div = document.createElement('div');
     div.innerHTML = html;
     document.getElementsByTagName('body')[0].appendChild(div);
     console.log(err);
@@ -67,9 +67,9 @@ function loadPage() {
 
 function reloadPage() {
   /* Deletes the div of generated content in the body, then reloads it all */
-  var body = document.getElementsByTagName('body')[0]
+  let body = document.getElementsByTagName('body')[0]
   /* Find and remove all DIVs */
-  for (var i = 0; i < body.childNodes.length; i++) {
+  for (let i = 0; i < body.childNodes.length; i++) {
     if (body.childNodes[i].nodeName === 'DIV') {
       body.removeChild(body.childNodes[i]);
     }
@@ -84,10 +84,10 @@ loadPage();
  * have been loaded into the DOM */
 function documentReady() {
   /* Event listeners for checkboxes */
-  var editButtons = document.getElementsByClassName('editHabit');
-  for (var i = 0; i < editButtons.length; i++) {
+  let editButtons = document.getElementsByClassName('editHabit');
+  for (let i = 0; i < editButtons.length; i++) {
     editButtons[i].addEventListener('click', function (event) {
-      var form = event.currentTarget.nextElementSibling;
+      let form = event.currentTarget.parentNode.querySelector('.editHabitForm');
       if (form.style.display === '')
         form.style.display = 'none';
       else
@@ -95,8 +95,8 @@ function documentReady() {
     });
   }
 
-  var cancelButtons = document.getElementsByClassName('cancel');
-  for (var i = 0; i < cancelButtons.length; i++) {
+  let cancelButtons = document.getElementsByClassName('cancel');
+  for (let i = 0; i < cancelButtons.length; i++) {
     cancelButtons[i].addEventListener('click', function (event) {
       event.preventDefault(); /* Prevent button from reloading page */
       event.currentTarget.parentNode.parentNode.style.display = 'none';
@@ -109,10 +109,10 @@ function documentReady() {
       document.getElementById('createHabitForm').style.display = '';
     });
 
-  var createHabitForm = document.getElementById('createHabitForm');
+  let createHabitForm = document.getElementById('createHabitForm');
   createHabitForm.addEventListener('submit', function (event) {
     event.preventDefault();
-    var body = {
+    let body = {
       name: String(createHabitForm.name.value),
       reward: Number(createHabitForm.reward.value)
     };
@@ -131,10 +131,10 @@ function documentReady() {
       document.getElementById('balanceForm').style.display = '';
     });
 
-  var balanceForm = document.getElementById('balanceForm');
+  let balanceForm = document.getElementById('balanceForm');
   balanceForm.addEventListener('submit', function(event) {
     event.preventDefault();
-    var body = { changeAmt: Number(balanceForm.delta.value) };
+    let body = { changeAmt: Number(balanceForm.delta.value) };
     httpPromise('change-balance', 'POST', 'application/json', body)
       .then(function (result) {
         balanceForm.style.display = 'none';
@@ -146,21 +146,21 @@ function documentReady() {
       });
   });
 
-  var editHabitForms = document.getElementsByClassName('editHabitForm');
-  for (var i = 0; i < editHabitForms.length; i++) {
+  let editHabitForms = document.getElementsByClassName('editHabitForm');
+  for (let i = 0; i < editHabitForms.length; i++) {
     editHabitForms[i].addEventListener('submit', function (event) {
-      var form = event.currentTarget;
+      let form = event.currentTarget;
       event.preventDefault();
-      var body = {
+      let body = {
         name: String(form.name.value),
         reward: Number(form.reward.value)
       };
-      var habitId = form.dataset.habitid;
+      let habitId = form.dataset.habitid;
       httpPromise('edit-habit/' + habitId, 'POST', 'application/json', body)
         .then(function (result) {
           form.style.display = 'none';
           result = JSON.parse(result);
-          var enclosingDiv = form.parentNode;
+          let enclosingDiv = form.parentNode;
           enclosingDiv.querySelector('.nameLabel').innerHTML = result.name;
           enclosingDiv.querySelector('.rewardLabel').innerHTML = result.reward;
         }).catch(function (err) {
@@ -169,10 +169,10 @@ function documentReady() {
     });
   }
 
-  var deleteHabitButtons = document.getElementsByClassName('deleteHabit');
-  for (var i = 0; i < deleteHabitButtons.length; i++) {
+  let deleteHabitButtons = document.getElementsByClassName('deleteHabit');
+  for (let i = 0; i < deleteHabitButtons.length; i++) {
     deleteHabitButtons[i].addEventListener('click', function (event) {
-      var button = event.currentTarget;
+      let button = event.currentTarget;
       /* TODO: Need defaults in httpPromise in case body is not provided */
       if (confirm("Are you sure you want to delete the habit?")) {
         httpPromise('delete-habit/' + button.dataset.habitid, 'DELETE', 'text/plain', {}).then(
@@ -206,14 +206,14 @@ function documentReady() {
       check(checkbox);
   }
 
-  var checkboxes = document.getElementsByClassName('completeHabit');
-  for (var i = 0; i < checkboxes.length; i++) {
+  let checkboxes = document.getElementsByClassName('completeHabit');
+  for (let i = 0; i < checkboxes.length; i++) {
     checkboxes[i].addEventListener("click", function(event) {
       const habitId = event.currentTarget.getAttribute('value');
-      cbox = event.target;
+      cbox = event.currentTarget;
       toggleCheckbox(cbox);
 
-      var body = {
+      let body = {
         id: habitId,
         set: isChecked(cbox),
         date: new Date().toLocalArray()
@@ -228,7 +228,7 @@ function documentReady() {
            * reflects the truth of what is in the database */
           result = JSON.parse(result);
           document.getElementById('balance').innerHTML = String(result.newBalance);
-          event.target.disabled = false;
+          cbox.disabled = false;
         }).catch(function (err) {
           /* Set the checkbox to be the opposite of what it has now, the habit's
            * completion was not toggled -- change the checkbox back */
