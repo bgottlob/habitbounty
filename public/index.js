@@ -209,12 +209,14 @@ function documentReady() {
   let checkboxes = document.getElementsByClassName('completeHabit');
   for (let i = 0; i < checkboxes.length; i++) {
     checkboxes[i].addEventListener("click", function(event) {
-      const habitId = event.currentTarget.getAttribute('value');
+      const id = event.currentTarget.dataset.habitid;
+      const rev = event.currentTarget.dataset.rev;
       cbox = event.currentTarget;
       toggleCheckbox(cbox);
 
       let body = {
-        id: habitId,
+        id: id,
+        rev: rev,
         set: isChecked(cbox),
         date: new Date().toLocalArray()
       };
@@ -228,6 +230,7 @@ function documentReady() {
            * reflects the truth of what is in the database */
           result = JSON.parse(result);
           document.getElementById('balance').innerHTML = String(result.newBalance);
+          cbox.dataset.rev = String(result.habitRev);
           cbox.disabled = false;
         }).catch(function (err) {
           /* Set the checkbox to be the opposite of what it has now, the habit's

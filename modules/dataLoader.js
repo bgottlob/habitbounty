@@ -36,7 +36,7 @@ loader.createBalance = function(balance) {
   if (!(balance instanceof Balance)) {
     return Promise.reject({
       error: 'bad_data_type',
-      param: habit,
+      param: balance,
       message: 'The parameter is not an instance of the Balance prototype'
     });
   }
@@ -85,6 +85,7 @@ loader.allHabits = function() {
     result.rows.forEach(function (row) {
       let habit = new Habit(row.value.name, row.value.reward, row.value.log);
       habit.id = row.id;
+      habit.rev = row.value.rev;
       resList.push(habit);
     });
     return Promise.resolve(resList);
@@ -95,7 +96,9 @@ loader.allHabits = function() {
 
 const mapAllHabits = function(doc) {
   if (doc.type === 'habit') {
-    emit(doc._id, { name: doc.name, reward: doc.reward, log: doc.log });
+    emit(doc._id,
+      { name: doc.name, reward: doc.reward, log: doc.log, rev: doc._rev }
+    );
   }
 };
 
@@ -111,7 +114,7 @@ let designDoc = {
 
 /* TODO: It appears that control flow is correct here, but look up the
  * general consensus on performing such a flow */
-pushDesignDoc = () => {
+function pushDesignDoc() {
   db.get(designDocId).then(function (doc) {
     /* Design doc exists, get the revision number and push the updated doc */
     designDoc._rev = doc._rev;

@@ -19,8 +19,8 @@
       {{#each habits}}
     <div class="row">
         <div class="column">
-          <input class="completeHabit" type="checkbox" value="{{id}}"
-           {{isComplete this}}/>
+          <input class="completeHabit" type="checkbox" data-habitid="{{id}}"
+           data-rev="{{rev}}" {{isComplete this}}/>
           <span class="nameLabel">{{name}}</span>
           $<span class="rewardLabel">{{reward}}</span>
           <button class="button button-clear editHabit">Edit</button>

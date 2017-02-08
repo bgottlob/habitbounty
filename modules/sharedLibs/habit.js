@@ -18,18 +18,21 @@ function Habit(name, reward, log) {
  * date array */
 Habit.prototype.isComplete = function(dateArray) {
   return this.log.reduce((acc, current) => {
-    return acc || current.isSame(dateArray);
+    return acc || current.date.isSame(dateArray);
   }, false);
 };
 
 Habit.prototype.complete = function(dateArray) {
   if (!this.isComplete(dateArray))
-    this.log.push(dateArray);
+    this.log.push({
+      date: dateArray,
+      reward: this.reward
+    });
 };
 
 Habit.prototype.uncomplete = function(dateArray) {
   this.log = this.log.filter(function (fromLog) {
-    return !fromLog.isSame(dateArray);
+    return !fromLog.date.isSame(dateArray);
   });
 };
 

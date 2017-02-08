@@ -73,6 +73,7 @@ router.add('GET', /^\/balance/, function (request, response) {
  * changes the balance appropriately */
 router.add('POST', /^\/complete-habit$/, function (request, response) {
   const habitId = request.body.id;
+  const habitRev = request.body.rev;
   const dateArray = request.body.date;
   const set = request.body.set;
   Promise.all([loader.getDoc(habitId), loader.getDoc('balance')])
@@ -88,8 +89,11 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
         balance.changeAmountBy(-(habit.reward));
       }
       /* Push updates to the database */
+      var habitDelta = habit.toDoc();
+      habitDelta._rev = habitRev;
+      console.log(habitDelta);
       return Promise.all([
-        loader.updateDoc(Object.assign(docs[0], habit.toDoc())),
+        loader.updateDoc(Object.assign(docs[0], habitDelta)),
         loader.updateDoc(Object.assign(docs[1], balance.toDoc()))
       ]);
     }).then(function (results) {
@@ -100,6 +104,7 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
       let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
       let balance = new Balance(docs[1].amount);
       return response.end(JSON.stringify({
+        habitRev: docs[0]._rev,
         completed: habit.isComplete(dateArray),
         newBalance: balance.amount
       }));
