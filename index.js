@@ -90,11 +90,9 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
     /* Get latest updates to the habit doc and balance */
     return Promise.all([loader.getDoc(habitId), loader.balance()]);
   }).then(function (docs) {
-    let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
     return response.end(JSON.stringify({
-      habitRev: docs[0]._rev,
-      completed: habit.isComplete(dateArray),
-      newBalance: docs[1].amount
+      habit: docs[0],
+      balance: docs[1].amount
     }));
   }).catch(function (err) {
     console.log(err);
@@ -125,8 +123,10 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
   loader.getDoc(docId).then(function(doc) {
     let delta = {
       name: request.body.name,
-      reward: request.body.reward
+      reward: request.body.reward,
+      _rev: request.body.rev
     };
+    console.log(delta);
     /* If delta data went into the Habit constructor, the habit's log would
      * be cleared; we don't want that */
     return loader.updateDoc(Object.assign(doc, delta));
@@ -137,6 +137,7 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
   }).then(function (doc) {
     response.end(JSON.stringify(doc));
   }).catch(function (err) {
+    console.log(err);
     response.statusCode = 400;
     response.end(JSON.stringify(err));
   });

@@ -143,6 +143,7 @@ function documentReady() {
         document.getElementById('balance').textContent = result.amount;
       }).catch(function (err) {
         console.log(err);
+        reloadPage();
       });
   });
 
@@ -150,23 +151,40 @@ function documentReady() {
   for (let i = 0; i < editHabitForms.length; i++) {
     editHabitForms[i].addEventListener('submit', function (event) {
       let form = event.currentTarget;
+      let div = form.parentNode;
       event.preventDefault();
       let body = {
         name: String(form.name.value),
-        reward: Number(form.reward.value)
+        reward: Number(form.reward.value),
+        rev: String(div.dataset.rev)
       };
-      let habitId = form.dataset.habitid;
-      httpPromise('edit-habit/' + habitId, 'POST', 'application/json', body)
+      httpPromise('edit-habit/' + div.dataset.id, 'POST', 'application/json', body)
         .then(function (result) {
           form.style.display = 'none';
           result = JSON.parse(result);
-          let enclosingDiv = form.parentNode;
-          enclosingDiv.querySelector('.nameLabel').textContent = result.name;
-          enclosingDiv.querySelector('.rewardLabel').textContent = result.reward;
+          refreshHabit(div, habitFromObject(result), result._rev);
         }).catch(function (err) {
           console.log(err);
+          reloadPage();
         });
     });
+  }
+
+  function refreshHabit(div, habit, rev) {
+    div.dataset.rev = rev;
+
+    div.querySelector('.nameLabel').textContent = habit.name;
+    div.querySelector('.rewardLabel').textContent = habit.reward;
+
+    let form = div.querySelector('.editHabitForm');
+    form.name.value = habit.name;
+    form.reward.value = habit.reward;
+
+    let cbox = div.querySelector('.completeHabit');
+    if (habit.isComplete(new Date().toLocalArray()))
+      check(cbox);
+    else
+      uncheck(cbox);
   }
 
   let deleteHabitButtons = document.getElementsByClassName('deleteHabit');
@@ -181,6 +199,7 @@ function documentReady() {
             reloadPage();
           }).catch(function (err) {
             console.log(err);
+            reloadPage();
           });
       }
     });
@@ -209,14 +228,13 @@ function documentReady() {
   let checkboxes = document.getElementsByClassName('completeHabit');
   for (let i = 0; i < checkboxes.length; i++) {
     checkboxes[i].addEventListener("click", function(event) {
-      const id = event.currentTarget.dataset.habitid;
-      const rev = event.currentTarget.dataset.rev;
-      cbox = event.currentTarget;
+      let cbox = event.currentTarget;
+      let div = cbox.parentNode;
       toggleCheckbox(cbox);
 
       let body = {
-        id: id,
-        rev: rev,
+        id: div.dataset.id,
+        rev: div.dataset.rev,
         set: isChecked(cbox),
         date: new Date().toLocalArray()
       };
@@ -229,16 +247,15 @@ function documentReady() {
           /* (Un)completion successful! The current state of the checkbox
            * reflects the truth of what is in the database */
           result = JSON.parse(result);
-          document.getElementById('balance').textContent = String(result.newBalance);
-          cbox.dataset.rev = String(result.habitRev);
+          document.getElementById('balance').textContent = String(result.balance);
+          refreshHabit(div, habitFromObject(result.habit), result.habit._rev);
           cbox.disabled = false;
         }).catch(function (err) {
           /* Set the checkbox to be the opposite of what it has now, the habit's
            * completion was not toggled -- change the checkbox back */
-          toggleCheckbox(cbox);
-          cbox.disabled = false;
           console.log('Error occurred when trying to complete the habit');
           console.log(err);
+          reloadPage();
         });
     });
   }
