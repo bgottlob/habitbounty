@@ -46,6 +46,7 @@ router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename)
 });
 
 function simpleGET(loaderPromise, response) {
+  console.log(loaderPromise);
   loaderPromise.then(function (results) {
     response.end(JSON.stringify(results));
   }).catch(function (err) {
@@ -66,7 +67,7 @@ router.add('GET', /^\/habit\/(\w+)/, function (request, response, docId) {
 
 /* Get the info for the balance */
 router.add('GET', /^\/balance/, function (request, response) {
-  simpleGET(loader.getDoc('balance'), response);
+  simpleGET(loader.balance(), response);
 });
 
 /* Completes a habit: Adds the provided date array to the habit's log and
@@ -76,51 +77,40 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
   const habitRev = request.body.rev;
   const dateArray = request.body.date;
   const set = request.body.set;
-  Promise.all([loader.getDoc(habitId), loader.getDoc('balance')])
-    .then(function (docs) {
-      let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
-      let balance = new Balance(docs[1].amount);
-      /* (Un)complete the habit and modify the balance */
-      if (set) {
-        habit.complete(dateArray);
-        balance.changeAmountBy(habit.reward);
-      } else {
-        habit.uncomplete(dateArray);
-        balance.changeAmountBy(-(habit.reward));
-      }
-      /* Push updates to the database */
-      var habitDelta = habit.toDoc();
-      habitDelta._rev = habitRev;
-      console.log(habitDelta);
-      return Promise.all([
-        loader.updateDoc(Object.assign(docs[0], habitDelta)),
-        loader.updateDoc(Object.assign(docs[1], balance.toDoc()))
-      ]);
-    }).then(function (results) {
-      /* Both documents were successfully udpated, get the updated
-       * versions of them to prepare response */
-      return Promise.all([loader.getDoc(habitId), loader.getDoc('balance')]);
-    }).then(function (docs) {
-      let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
-      let balance = new Balance(docs[1].amount);
-      return response.end(JSON.stringify({
-        habitRev: docs[0]._rev,
-        completed: habit.isComplete(dateArray),
-        newBalance: balance.amount
-      }));
-    }).catch(function (err) {
-      console.log(err);
-      response.statusCode = 400;
-      return response.end(JSON.stringify(err));
-    });
+  loader.getDoc(habitId).then(function (doc) {
+    let habit = new Habit(doc.name, doc.reward, doc.log);
+    if (set)
+      habit.complete(dateArray);
+    else
+      habit.uncomplete(dateArray);
+    var habitDelta = habit.toDoc();
+    habitDelta._rev = habitRev;
+    return loader.updateDoc(Object.assign(doc, habitDelta));
+  }).then(function (result) {
+    /* Get latest updates to the habit doc and balance */
+    return Promise.all([loader.getDoc(habitId), loader.balance()]);
+  }).then(function (docs) {
+    let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
+    return response.end(JSON.stringify({
+      habitRev: docs[0]._rev,
+      completed: habit.isComplete(dateArray),
+      newBalance: docs[1].amount
+    }));
+  }).catch(function (err) {
+    console.log(err);
+    response.statusCode = 400;
+    return response.end(JSON.stringify(err));
+  });
 });
 
 router.add('POST', /^\/change-balance$/, function (request, response) {
   const changeAmt = Number(request.body.changeAmt);
   loader.getDoc('balance').then(function (doc) {
-    let balance = new Balance(doc.amount);
+    let balance = new Balance(doc.log);
     balance.changeAmountBy(changeAmt);
     return loader.updateDoc(Object.assign(doc, balance.toDoc()));
+  }).then(function (result) {
+    return loader.balance();
   }).then(function (result) {
     return response.end(JSON.stringify(result));
   }).catch(function (err) {

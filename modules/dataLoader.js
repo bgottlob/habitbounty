@@ -94,11 +94,29 @@ loader.allHabits = function() {
   });
 };
 
+loader.balance = function () {
+  return db.query('queries/balance', {reduce: true}).then(function (result) {
+    return Promise.resolve({ amount: result.rows[0].value });
+  }).catch(function (err) {
+    return Promise.reject(err);
+  });
+};
+
 const mapAllHabits = function(doc) {
   if (doc.type === 'habit') {
     emit(doc._id,
       { name: doc.name, reward: doc.reward, log: doc.log, rev: doc._rev }
     );
+  }
+};
+
+const mapBalance = function(doc) {
+  if (doc.type === 'habit') {
+    for (var i = 0; i < doc.log.length; i++)
+      emit(doc._id, doc.log[i].reward);
+  } else if (doc.type === 'balance') {
+    for (var i = 0; i < doc.log.length; i++)
+      emit(doc._id, doc.log[i]);
   }
 };
 
@@ -108,6 +126,10 @@ let designDoc = {
   views: {
     all_habits: {
       map: mapAllHabits.toString()
+    },
+    balance: {
+      map: mapBalance.toString(),
+      reduce: '_sum'
     }
   }
 };

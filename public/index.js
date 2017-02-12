@@ -140,7 +140,7 @@ function documentReady() {
         balanceForm.style.display = 'none';
         return balancePromise();
       }).then(function (result) {
-        document.getElementById('balance').innerHTML = result.amount;
+        document.getElementById('balance').textContent = result.amount;
       }).catch(function (err) {
         console.log(err);
       });
@@ -161,8 +161,8 @@ function documentReady() {
           form.style.display = 'none';
           result = JSON.parse(result);
           let enclosingDiv = form.parentNode;
-          enclosingDiv.querySelector('.nameLabel').innerHTML = result.name;
-          enclosingDiv.querySelector('.rewardLabel').innerHTML = result.reward;
+          enclosingDiv.querySelector('.nameLabel').textContent = result.name;
+          enclosingDiv.querySelector('.rewardLabel').textContent = result.reward;
         }).catch(function (err) {
           console.log(err);
         });
@@ -229,7 +229,7 @@ function documentReady() {
           /* (Un)completion successful! The current state of the checkbox
            * reflects the truth of what is in the database */
           result = JSON.parse(result);
-          document.getElementById('balance').innerHTML = String(result.newBalance);
+          document.getElementById('balance').textContent = String(result.newBalance);
           cbox.dataset.rev = String(result.habitRev);
           cbox.disabled = false;
         }).catch(function (err) {
