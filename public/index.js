@@ -191,11 +191,11 @@ function documentReady() {
   for (let i = 0; i < deleteHabitButtons.length; i++) {
     deleteHabitButtons[i].addEventListener('click', function (event) {
       let button = event.currentTarget;
+      let div = button.parentNode;
       /* TODO: Need defaults in httpPromise in case body is not provided */
       if (confirm("Are you sure you want to delete the habit?")) {
-        httpPromise('delete-habit/' + button.dataset.habitid, 'DELETE', 'text/plain', {}).then(
+        httpPromise('delete-habit/' + div.dataset.id, 'DELETE', 'text/plain', {}).then(
           function(result) {
-            console.log(result);
             reloadPage();
           }).catch(function (err) {
             console.log(err);

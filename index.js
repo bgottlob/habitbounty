@@ -146,7 +146,7 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
 router.add('DELETE', /^\/delete-habit\/(\w+)/,
   function (request, response, docId) {
     loader.getDoc(docId).then(function (doc) {
-      return loader.deleteDoc(doc);
+      return loader.updateDoc(Object.assign(doc, { inactive: true }));
     }).then(function (result) {
       response.end(JSON.stringify(result));
     }).catch(function (err) {

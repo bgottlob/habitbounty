@@ -103,7 +103,7 @@ loader.balance = function () {
 };
 
 const mapAllHabits = function(doc) {
-  if (doc.type === 'habit') {
+  if (!doc.inactive && doc.type === 'habit') {
     emit(doc._id,
       { name: doc.name, reward: doc.reward, log: doc.log, rev: doc._rev }
     );
