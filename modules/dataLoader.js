@@ -52,31 +52,17 @@ loader.createBalance = function(balance) {
 /* Assumes the doc object contains the _id and _rev, or else couch will give
  * an error */
 loader.updateDoc = function (doc) {
-  /* TODO: I'm pretty sure this extra layer of calls with resolve and reject
-   * is pointless. Test without it and update it anywhere else in this module */
-  return db.put(doc).then(function (result) {
-    return Promise.resolve(result);
-  }).catch(function (err) {
-    return Promise.reject(err);
-  });
+  return db.put(doc);
 };
 
 /* Assumes the doc object contains the _id and _rev, or else couch will give
  * an error */
 loader.deleteDoc = function(doc) {
-  return db.remove(doc).then(function (result) {
-    return Promise.resolve(result);
-  }).catch(function (err) {
-    return Promise.reject(err);
-  });
+  return db.remove(doc);
 };
 
 loader.getDoc = function(docId) {
-  return db.get(docId).then(function (doc) {
-    return Promise.resolve(doc);
-  }).catch(function (err) {
-    return Promise.reject(err);
-  });
+  return db.get(docId);
 };
 
 loader.allHabits = function() {
@@ -96,7 +82,7 @@ loader.allHabits = function() {
 
 loader.balance = function () {
   return db.query('queries/balance', {reduce: true}).then(function (result) {
-    return Promise.resolve({ amount: result.rows[0].value });
+    return Promise.resolve({ balance: result.rows[0].value });
   }).catch(function (err) {
     return Promise.reject(err);
   });
@@ -134,29 +120,16 @@ let designDoc = {
   }
 };
 
-/* TODO: It appears that control flow is correct here, but look up the
- * general consensus on performing such a flow */
+pushDesignDoc();
+
 function pushDesignDoc() {
   db.get(designDocId).then(function (doc) {
     /* Design doc exists, get the revision number and push the updated doc */
     designDoc._rev = doc._rev;
     return db.put(designDoc);
   }).then(function (result) {
-    console.log('The design doc ' + '"' + designDocId + '" has been updated!');
+    console.log('The design doc ' + '"' + designDocId + '" has been created/updated!');
   }).catch(function (err) {
-    if (err.error === 'not_found') {
-      /* Design doc doesn't exist, create it */
-      console.log('Do not fear, the document will be created now!');
-      return db.put(designDoc);
-    }
-    else console.log(err);
-  }).then(function (result) {
-    if (result) { /* Result is undefined if db.put does not run */
-      console.log(result);
-      console.log('The design doc ' + '"' + designDocId + '" has been created!');
-    }
-  }).catch(function (err) {
-    console.log('An attempt at creating the design doc failed!');
     console.log(err);
   });
 }

@@ -47,7 +47,7 @@ function loadPage() {
      * and balance data */
     let html = values[0]({
       habits: values[1],
-      balance: values[2].amount
+      balance: values[2].balance
     });
     /* Create a div with the built HTML and append it to the HTML body */
     let div = document.createElement('div');
@@ -140,7 +140,7 @@ function documentReady() {
         balanceForm.style.display = 'none';
         return balancePromise();
       }).then(function (result) {
-        document.getElementById('balance').textContent = result.amount;
+        document.getElementById('balance').textContent = result.balance.toFixed(2);
       }).catch(function (err) {
         console.log(err);
         reloadPage();
@@ -192,7 +192,6 @@ function documentReady() {
     deleteHabitButtons[i].addEventListener('click', function (event) {
       let button = event.currentTarget;
       let div = button.parentNode;
-      /* TODO: Need defaults in httpPromise in case body is not provided */
       if (confirm("Are you sure you want to delete the habit?")) {
         httpPromise('delete-habit/' + div.dataset.id, 'DELETE', 'text/plain', {}).then(
           function(result) {
@@ -247,7 +246,7 @@ function documentReady() {
           /* (Un)completion successful! The current state of the checkbox
            * reflects the truth of what is in the database */
           result = JSON.parse(result);
-          document.getElementById('balance').textContent = String(result.balance);
+          document.getElementById('balance').textContent = result.balance.toFixed(2);
           refreshHabit(div, habitFromObject(result.habit), result.habit._rev);
           cbox.disabled = false;
         }).catch(function (err) {

@@ -92,7 +92,7 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
   }).then(function (docs) {
     return response.end(JSON.stringify({
       habit: docs[0],
-      balance: docs[1].amount
+      balance: docs[1].balance
     }));
   }).catch(function (err) {
     console.log(err);
@@ -178,7 +178,6 @@ http.createServer(function (request, response) {
      * and set to the request body property */
     if (body.length > 0) {
       body = Buffer.concat(body).toString();
-      /* TODO: Catch error - server dies if JSON doesn't parse */
       try {
         request.body = JSON.parse(body);
       } catch (e) {
