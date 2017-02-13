@@ -120,8 +120,6 @@ let designDoc = {
   }
 };
 
-pushDesignDoc();
-
 function pushDesignDoc() {
   db.get(designDocId).then(function (doc) {
     /* Design doc exists, get the revision number and push the updated doc */
