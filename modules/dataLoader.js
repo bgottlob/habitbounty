@@ -1,12 +1,12 @@
-var loader = module.exports;
+let loader = module.exports;
 
 const PouchDB = require('pouchdb');
-const Habit = require('./habit.js');
-const Balance = require('./balance.js');
+const Habit = require('./sharedLibs/habit.js');
+const Balance = require('./sharedLibs/balance.js');
 
 const url = 'http://localhost';
 const port = 5984;
-var db = new PouchDB(url + ':' + port + '/habitbounty', {
+let db = new PouchDB(url + ':' + port + '/habitbounty', {
   auth: {
     username: process.env.COUCH_USER,
     password: process.env.COUCH_PASS
@@ -14,18 +14,19 @@ var db = new PouchDB(url + ':' + port + '/habitbounty', {
 });
 
 /* Pushes a Habit object as a new document in the database */
-loader.createHabit = function(habit, callback) {
+loader.createHabit = function(habit) {
   if (!(habit instanceof Habit)) {
-    return callback({
+    return Promise.reject({
       error: 'bad_data_type',
       param: habit,
       message: 'The parameter is not an instance of the Habit prototype'
     });
   }
   else {
-    db.post(habit.toDoc(), function(err, result) {
-      if (err) return callback(err);
-      else return callback(null, result);
+    return db.post(habit.toDoc()).then(function(result) {
+      return Promise.resolve(result);
+    }).catch(function (err) {
+      return Promise.reject(err);
     });
   }
 };
@@ -35,7 +36,7 @@ loader.createBalance = function(balance) {
   if (!(balance instanceof Balance)) {
     return Promise.reject({
       error: 'bad_data_type',
-      param: habit,
+      param: balance,
       message: 'The parameter is not an instance of the Balance prototype'
     });
   }
@@ -51,90 +52,84 @@ loader.createBalance = function(balance) {
 /* Assumes the doc object contains the _id and _rev, or else couch will give
  * an error */
 loader.updateDoc = function (doc) {
-  return db.put(doc).then(function (response) {
-    return Promise.resolve(response);
-  }).catch(function (err) {
-    return Promise.reject(err);
-  });
+  return db.put(doc);
+};
+
+/* Assumes the doc object contains the _id and _rev, or else couch will give
+ * an error */
+loader.deleteDoc = function(doc) {
+  return db.remove(doc);
 };
 
 loader.getDoc = function(docId) {
-  return db.get(docId).then(function (doc) {
-    return Promise.resolve(doc);
+  return db.get(docId);
+};
+
+loader.allHabits = function() {
+  return db.query('queries/all_habits').then(function (result) {
+    resList = [];
+    result.rows.forEach(function (row) {
+      let habit = new Habit(row.value.name, row.value.reward, row.value.log);
+      habit.id = row.id;
+      habit.rev = row.value.rev;
+      resList.push(habit);
+    });
+    return Promise.resolve(resList);
   }).catch(function (err) {
     return Promise.reject(err);
   });
 };
 
-/* TODO: get rid of updateHabit -- will need to remove call in root/index.js */
-loader.updateHabit = loader.updateDoc;
-loader.getHabit = loader.getDoc;
-
-loader.allHabits = (callback) => {
-  db.query('queries/all_habits', (err, result) => {
-    if (err) return callback(err);
-    else {
-      resList = [];
-      result.rows.forEach((row) => {
-        var habit = new Habit(row.value.name, row.value.reward, row.value.log);
-        habit.id = row.id;
-        resList.push(habit);
-      });
-      return callback(null, resList);
-    }
+loader.balance = function () {
+  return db.query('queries/balance', {reduce: true}).then(function (result) {
+    return Promise.resolve({ balance: result.rows[0].value });
+  }).catch(function (err) {
+    return Promise.reject(err);
   });
 };
 
 const mapAllHabits = function(doc) {
-  if (doc.type === 'habit') {
-    emit(doc._id, { name: doc.name, reward: doc.reward, log: doc.log });
+  if (!doc.inactive && doc.type === 'habit') {
+    emit(doc._id,
+      { name: doc.name, reward: doc.reward, log: doc.log, rev: doc._rev }
+    );
   }
 };
 
-var designDocId = '_design/queries';
-var designDoc = {
+const mapBalance = function(doc) {
+  if (doc.type === 'habit') {
+    for (var i = 0; i < doc.log.length; i++)
+      emit(doc._id, doc.log[i].reward);
+  } else if (doc.type === 'balance') {
+    for (var i = 0; i < doc.log.length; i++)
+      emit(doc._id, doc.log[i]);
+  }
+};
+
+let designDocId = '_design/queries';
+let designDoc = {
   _id: designDocId,
   views: {
     all_habits: {
       map: mapAllHabits.toString()
+    },
+    balance: {
+      map: mapBalance.toString(),
+      reduce: '_sum'
     }
   }
 };
 
-pushDesignDoc = () => {
-  db.get(designDocId, (err, doc) => {
-    if (err) {
-      if (err.error === 'not_found') {
-        /* Design doc doesn't exist, create it */
-        db.put(designDoc, (err, response) => {
-          if (err)
-            console.log(err);
-          else
-            console.log('The design doc ' + '"' + designDocId +
-                        '" has been created!');
-        });
-      }
-      else
-        console.log(err);
-    } else {
-      /* Design doc exists, get the revision number and push the updated doc */
-      designDoc._rev = doc._rev;
-      db.put(designDoc, (err, response) => {
-        if (err) console.log(err);
-        else
-          console.log('The design doc ' + '"' + designDocId +
-                      '" has been updated!');
-      });
-    }
+pushDesignDoc();
+
+function pushDesignDoc() {
+  db.get(designDocId).then(function (doc) {
+    /* Design doc exists, get the revision number and push the updated doc */
+    designDoc._rev = doc._rev;
+    return db.put(designDoc);
+  }).then(function (result) {
+    console.log('The design doc ' + '"' + designDocId + '" has been created/updated!');
+  }).catch(function (err) {
+    console.log(err);
   });
 }
-
-//pushDesignDoc();
-/*
-var habs = [new Habit("Take a walk", 3.32), new Habit("Make bed", 0.05),
-            new Habit("Wash behind ear", 0.35)];
-habs[0].complete();
-habs[2].complete();
-habs.forEach((hab) => { loader.createHabit(hab) });
-*/
-//loader.allHabits(console.log);
