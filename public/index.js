@@ -47,7 +47,7 @@ function loadPage() {
      * and balance data */
     let html = values[0]({
       habits: values[1],
-      balance: values[2].amount
+      balance: values[2].balance
     });
     /* Create a div with the built HTML and append it to the HTML body */
     let div = document.createElement('div');
@@ -140,9 +140,10 @@ function documentReady() {
         balanceForm.style.display = 'none';
         return balancePromise();
       }).then(function (result) {
-        document.getElementById('balance').innerHTML = result.amount;
+        document.getElementById('balance').textContent = result.balance.toFixed(2);
       }).catch(function (err) {
         console.log(err);
+        reloadPage();
       });
   });
 
@@ -150,37 +151,54 @@ function documentReady() {
   for (let i = 0; i < editHabitForms.length; i++) {
     editHabitForms[i].addEventListener('submit', function (event) {
       let form = event.currentTarget;
+      let div = form.parentNode;
       event.preventDefault();
       let body = {
         name: String(form.name.value),
-        reward: Number(form.reward.value)
+        reward: Number(form.reward.value),
+        rev: String(div.dataset.rev)
       };
-      let habitId = form.dataset.habitid;
-      httpPromise('edit-habit/' + habitId, 'POST', 'application/json', body)
+      httpPromise('edit-habit/' + div.dataset.id, 'POST', 'application/json', body)
         .then(function (result) {
           form.style.display = 'none';
           result = JSON.parse(result);
-          let enclosingDiv = form.parentNode;
-          enclosingDiv.querySelector('.nameLabel').innerHTML = result.name;
-          enclosingDiv.querySelector('.rewardLabel').innerHTML = result.reward;
+          refreshHabit(div, habitFromObject(result), result._rev);
         }).catch(function (err) {
           console.log(err);
+          reloadPage();
         });
     });
+  }
+
+  function refreshHabit(div, habit, rev) {
+    div.dataset.rev = rev;
+
+    div.querySelector('.nameLabel').textContent = habit.name;
+    div.querySelector('.rewardLabel').textContent = habit.reward;
+
+    let form = div.querySelector('.editHabitForm');
+    form.name.value = habit.name;
+    form.reward.value = habit.reward;
+
+    let cbox = div.querySelector('.completeHabit');
+    if (habit.isComplete(new Date().toLocalArray()))
+      check(cbox);
+    else
+      uncheck(cbox);
   }
 
   let deleteHabitButtons = document.getElementsByClassName('deleteHabit');
   for (let i = 0; i < deleteHabitButtons.length; i++) {
     deleteHabitButtons[i].addEventListener('click', function (event) {
       let button = event.currentTarget;
-      /* TODO: Need defaults in httpPromise in case body is not provided */
+      let div = button.parentNode;
       if (confirm("Are you sure you want to delete the habit?")) {
-        httpPromise('delete-habit/' + button.dataset.habitid, 'DELETE', 'text/plain', {}).then(
+        httpPromise('delete-habit/' + div.dataset.id, 'DELETE', 'text/plain', {}).then(
           function(result) {
-            console.log(result);
             reloadPage();
           }).catch(function (err) {
             console.log(err);
+            reloadPage();
           });
       }
     });
@@ -209,12 +227,13 @@ function documentReady() {
   let checkboxes = document.getElementsByClassName('completeHabit');
   for (let i = 0; i < checkboxes.length; i++) {
     checkboxes[i].addEventListener("click", function(event) {
-      const habitId = event.currentTarget.getAttribute('value');
-      cbox = event.currentTarget;
+      let cbox = event.currentTarget;
+      let div = cbox.parentNode;
       toggleCheckbox(cbox);
 
       let body = {
-        id: habitId,
+        id: div.dataset.id,
+        rev: div.dataset.rev,
         set: isChecked(cbox),
         date: new Date().toLocalArray()
       };
@@ -227,15 +246,15 @@ function documentReady() {
           /* (Un)completion successful! The current state of the checkbox
            * reflects the truth of what is in the database */
           result = JSON.parse(result);
-          document.getElementById('balance').innerHTML = String(result.newBalance);
+          document.getElementById('balance').textContent = result.balance.toFixed(2);
+          refreshHabit(div, habitFromObject(result.habit), result.habit._rev);
           cbox.disabled = false;
         }).catch(function (err) {
           /* Set the checkbox to be the opposite of what it has now, the habit's
            * completion was not toggled -- change the checkbox back */
-          toggleCheckbox(cbox);
-          cbox.disabled = false;
           console.log('Error occurred when trying to complete the habit');
           console.log(err);
+          reloadPage();
         });
     });
   }

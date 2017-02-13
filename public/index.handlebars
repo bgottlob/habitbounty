@@ -18,16 +18,16 @@
     <h5>Your habits:</h5>
       {{#each habits}}
     <div class="row">
-        <div class="column">
-          <input class="completeHabit" type="checkbox" value="{{id}}"
-           {{isComplete this}}/>
+      <div class="habit column" data-rev="{{rev}}" data-id="{{id}}">
+        <input class="completeHabit" type="checkbox" {{isComplete this}}/>
           <span class="nameLabel">{{name}}</span>
           $<span class="rewardLabel">{{reward}}</span>
           <button class="button button-clear editHabit">Edit</button>
-          <button style="color:red;" data-habitid="{{id}}"
-          class="button button-clear deleteHabit">Delete</button>
+          <button style="color:red;" class="button button-clear deleteHabit">
+            Delete
+          </button>
           <!-- TODO: Move style to a CSS file -->
-          <form class="editHabitForm" style="display:none;" data-habitid="{{id}}">
+          <form class="editHabitForm" style="display:none;">
             <fieldset>
               <label>Name</label>
               <input name="name" type="text" value="{{name}}" required>

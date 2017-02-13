@@ -46,6 +46,7 @@ router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename)
 });
 
 function simpleGET(loaderPromise, response) {
+  console.log(loaderPromise);
   loaderPromise.then(function (results) {
     response.end(JSON.stringify(results));
   }).catch(function (err) {
@@ -66,56 +67,48 @@ router.add('GET', /^\/habit\/(\w+)/, function (request, response, docId) {
 
 /* Get the info for the balance */
 router.add('GET', /^\/balance/, function (request, response) {
-  simpleGET(loader.getDoc('balance'), response);
+  simpleGET(loader.balance(), response);
 });
 
 /* Completes a habit: Adds the provided date array to the habit's log and
  * changes the balance appropriately */
 router.add('POST', /^\/complete-habit$/, function (request, response) {
   const habitId = request.body.id;
+  const habitRev = request.body.rev;
   const dateArray = request.body.date;
   const set = request.body.set;
-  Promise.all([loader.getDoc(habitId), loader.getDoc('balance')])
-    .then(function (docs) {
-      let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
-      let balance = new Balance(docs[1].amount);
-      /* (Un)complete the habit and modify the balance */
-      if (set) {
-        habit.complete(dateArray);
-        balance.changeAmountBy(habit.reward);
-      } else {
-        habit.uncomplete(dateArray);
-        balance.changeAmountBy(-(habit.reward));
-      }
-      /* Push updates to the database */
-      return Promise.all([
-        loader.updateDoc(Object.assign(docs[0], habit.toDoc())),
-        loader.updateDoc(Object.assign(docs[1], balance.toDoc()))
-      ]);
-    }).then(function (results) {
-      /* Both documents were successfully udpated, get the updated
-       * versions of them to prepare response */
-      return Promise.all([loader.getDoc(habitId), loader.getDoc('balance')]);
-    }).then(function (docs) {
-      let habit = new Habit(docs[0].name, docs[0].reward, docs[0].log);
-      let balance = new Balance(docs[1].amount);
-      return response.end(JSON.stringify({
-        completed: habit.isComplete(dateArray),
-        newBalance: balance.amount
-      }));
-    }).catch(function (err) {
-      console.log(err);
-      response.statusCode = 400;
-      return response.end(JSON.stringify(err));
-    });
+  loader.getDoc(habitId).then(function (doc) {
+    let habit = new Habit(doc.name, doc.reward, doc.log);
+    if (set)
+      habit.complete(dateArray);
+    else
+      habit.uncomplete(dateArray);
+    var habitDelta = habit.toDoc();
+    habitDelta._rev = habitRev;
+    return loader.updateDoc(Object.assign(doc, habitDelta));
+  }).then(function (result) {
+    /* Get latest updates to the habit doc and balance */
+    return Promise.all([loader.getDoc(habitId), loader.balance()]);
+  }).then(function (docs) {
+    return response.end(JSON.stringify({
+      habit: docs[0],
+      balance: docs[1].balance
+    }));
+  }).catch(function (err) {
+    console.log(err);
+    response.statusCode = 400;
+    return response.end(JSON.stringify(err));
+  });
 });
 
 router.add('POST', /^\/change-balance$/, function (request, response) {
   const changeAmt = Number(request.body.changeAmt);
   loader.getDoc('balance').then(function (doc) {
-    let balance = new Balance(doc.amount);
+    let balance = new Balance(doc.log);
     balance.changeAmountBy(changeAmt);
     return loader.updateDoc(Object.assign(doc, balance.toDoc()));
+  }).then(function (result) {
+    return loader.balance();
   }).then(function (result) {
     return response.end(JSON.stringify(result));
   }).catch(function (err) {
@@ -130,8 +123,10 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
   loader.getDoc(docId).then(function(doc) {
     let delta = {
       name: request.body.name,
-      reward: request.body.reward
+      reward: request.body.reward,
+      _rev: request.body.rev
     };
+    console.log(delta);
     /* If delta data went into the Habit constructor, the habit's log would
      * be cleared; we don't want that */
     return loader.updateDoc(Object.assign(doc, delta));
@@ -142,6 +137,7 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
   }).then(function (doc) {
     response.end(JSON.stringify(doc));
   }).catch(function (err) {
+    console.log(err);
     response.statusCode = 400;
     response.end(JSON.stringify(err));
   });
@@ -150,7 +146,7 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
 router.add('DELETE', /^\/delete-habit\/(\w+)/,
   function (request, response, docId) {
     loader.getDoc(docId).then(function (doc) {
-      return loader.deleteDoc(doc);
+      return loader.updateDoc(Object.assign(doc, { inactive: true }));
     }).then(function (result) {
       response.end(JSON.stringify(result));
     }).catch(function (err) {
@@ -182,7 +178,6 @@ http.createServer(function (request, response) {
      * and set to the request body property */
     if (body.length > 0) {
       body = Buffer.concat(body).toString();
-      /* TODO: Catch error - server dies if JSON doesn't parse */
       try {
         request.body = JSON.parse(body);
       } catch (e) {

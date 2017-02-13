@@ -1,19 +1,29 @@
-function Balance(amount) {
-  if (amount) this.amount = Number(amount);
-  else this.amount = 0;
+function Balance(log, initAmt) {
+  this.log = log;
+  if (!log) this.log = [];
+
+  this.changeAmountBy(initAmt);
 }
 
 Balance.prototype.toDoc = function() {
   return {
     _id: 'balance',
-    amount: Number(this.amount),
-    type: 'balance'
+    type: 'balance',
+    log: this.log
   };
 };
 
-Balance.prototype.changeAmountBy = function(changeAmt) {
-  this.amount += changeAmt;
+Balance.prototype.changeAmountBy = function (changeAmt) {
+  changeAmt = Number(changeAmt);
+  if (!isNaN(changeAmt)) this.log.push(changeAmt);
 };
+
+Balance.prototype.amount = function () {
+  return this.log.reduce(function (amt, curr) {
+    return amt + curr;
+  }, 0);
+}
+
 
 /* Support importing into browser or node */
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')

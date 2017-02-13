@@ -4,7 +4,6 @@ const fs = require('fs');
 module.exports = function(path, context, callback) {
   fs.stat(path, (err, stats) => {
     if (err) {
-      /* TODO: Check what this error looks like */
       callback(err)
     }
     else if (stats.isDirectory()) {
@@ -17,7 +16,6 @@ module.exports = function(path, context, callback) {
         htmlString += chunk;
       });
       fileStream.on('end', () => {
-        /* TODO: Do I have to catch errors in here? */
         let template = Handlebars.compile(htmlString);
         callback(null, template(context))
       });
