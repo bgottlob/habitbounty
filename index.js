@@ -46,7 +46,6 @@ router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename)
 });
 
 function simpleGET(loaderPromise, response) {
-  console.log(loaderPromise);
   loaderPromise.then(function (results) {
     response.end(JSON.stringify(results));
   }).catch(function (err) {
@@ -126,7 +125,6 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
       reward: request.body.reward,
       _rev: request.body.rev
     };
-    console.log(delta);
     /* If delta data went into the Habit constructor, the habit's log would
      * be cleared; we don't want that */
     return loader.updateDoc(Object.assign(doc, delta));

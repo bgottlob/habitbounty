@@ -4,9 +4,10 @@ const PouchDB = require('pouchdb');
 const Habit = require('./sharedLibs/habit.js');
 const Balance = require('./sharedLibs/balance.js');
 
-const url = 'http://localhost';
-const port = 5984;
-let db = new PouchDB(url + ':' + port + '/habitbounty', {
+let url, dbName;
+if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';
+if (!(dbName = process.env.HB_DB_NAME)) dbName = 'habitbounty';
+let db = new PouchDB(url + '/' + dbName, {
   auth: {
     username: process.env.COUCH_USER,
     password: process.env.COUCH_PASS
@@ -120,14 +121,22 @@ let designDoc = {
   }
 };
 
-function pushDesignDoc() {
-  db.get(designDocId).then(function (doc) {
+loader.pushDesignDoc = function() {
+  return db.get(designDocId).then(function (doc) {
     /* Design doc exists, get the revision number and push the updated doc */
     designDoc._rev = doc._rev;
     return db.put(designDoc);
   }).then(function (result) {
-    console.log('The design doc ' + '"' + designDocId + '" has been created/updated!');
+    console.log('The design doc ' + '"' + designDocId + '" has been updated!');
   }).catch(function (err) {
+    console.log('Error:');
     console.log(err);
+    console.log('Attempting to push design doc for the first time');
+    return db.put(designDoc);
+  }).then(function (result) {
+    console.log(result);
+    console.log('The design doc ' + '"' + designDocId + '" has been created!');
+  }).catch(function (err) {
+    console.log('Could not create design doc, error:\n' + err);
   });
 }
