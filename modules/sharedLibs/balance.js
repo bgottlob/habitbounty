@@ -2,6 +2,7 @@ function Balance(log, initAmt) {
   this.log = log;
   if (!log) this.log = [];
 
+  if (!initAmt) initAmt = 0;
   this.changeAmountBy(initAmt);
 }
 
