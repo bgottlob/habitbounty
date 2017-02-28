@@ -5,6 +5,9 @@ const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/sharedLibs/habit.js');
 const Balance = require('./modules/sharedLibs/balance.js');
+const twiliolibrary = require('twilio');
+const twilioClient = new twiliolibrary.Twilio(process.env.TWILIO_SID,
+                                              process.env.TWILIO_AUTH_TOKEN)
 
 let router = new Router();
 let fileServer = ecstatic({root: __dirname + '/public'});
@@ -162,6 +165,21 @@ router.add('PUT', /^\/habit$/, function (request, response) {
     response.end(JSON.stringify(result));
   }).catch(function (err) {
     response.statusCode = 400;
+    response.end(JSON.stringify(err));
+  });
+});
+
+router.add('GET', /^\/remind\/(\+\d{11}$)/, function (request, response, phoneNumber) {
+  console.log('sending a message to ' + phoneNumber);
+  twilioClient.messages.create({
+    body: 'Did you log your habits today? Go to http://localhost:8080',
+    to: phoneNumber,
+    from: process.env.TWILIO_FROM_NUMBER
+  }).then(function (result) {
+    console.log(result);
+    response.end('Success!');
+  }).catch(function (err) {
+    console.log(err);
     response.end(JSON.stringify(err));
   });
 });
