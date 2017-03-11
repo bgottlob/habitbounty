@@ -3,6 +3,7 @@ let loader = module.exports;
 const PouchDB = require('pouchdb');
 const Habit = require('./sharedLibs/habit.js');
 const Balance = require('./sharedLibs/balance.js');
+const Expense = require('./sharedLibs/expense.js');
 
 let url, dbName;
 if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';
@@ -14,6 +15,7 @@ let db = new PouchDB(url + '/' + dbName, {
   }
 });
 
+/* TODO: DRY out these create functions */
 /* Pushes a Habit object as a new document in the database */
 loader.createHabit = function(habit) {
   if (!(habit instanceof Habit)) {
@@ -24,11 +26,20 @@ loader.createHabit = function(habit) {
     });
   }
   else {
-    return db.post(habit.toDoc()).then(function(result) {
-      return Promise.resolve(result);
-    }).catch(function (err) {
-      return Promise.reject(err);
+    return db.post(habit.toDoc());
+  }
+};
+
+loader.createExpense = function(expense) {
+  if (!(expense instanceof Expense)) {
+    return Promise.reject({
+      error: 'bad_data_type',
+      param: expense,
+      message: 'The parameter is not an instance of the Expense prototype'
     });
+  }
+  else {
+    return db.post(expense.toDoc());
   }
 };
 
@@ -42,11 +53,7 @@ loader.createBalance = function(balance) {
     });
   }
   else {
-    return db.put(balance.toDoc()).then(function (result) {
-      return Promise.resolve(result);
-    }).catch(function (err) {
-      return Promise.reject(err)
-    });
+    return db.put(balance.toDoc());
   }
 };
 
@@ -81,6 +88,22 @@ loader.allHabits = function() {
   });
 };
 
+loader.allExpenses = function() {
+  return db.query('queries/all_expenses').then(function (result) {
+    resList = [];
+    result.rows.forEach(function (row) {
+      let expense = new Expense(row.value.name, row.value.amount,
+                                row.value.dateCharged);
+      expense.id = row.id;
+      expense.rev = row.value.rev;
+      resList.push(expense);
+    });
+    return Promise.resolve(resList);
+  }).catch(function (err) {
+    return Promise.reject(err);
+  });
+};
+
 loader.balance = function () {
   return db.query('queries/balance', {reduce: true}).then(function (result) {
     return Promise.resolve({ balance: result.rows[0].value });
@@ -97,6 +120,18 @@ const mapAllHabits = function(doc) {
   }
 };
 
+const mapAllExpenses = function(doc) {
+  if (doc.type === 'expense') {
+    emit(doc._id,
+      { name: doc.name,
+        amount: doc.amount,
+        dateCharged: doc.dateCharged,
+        rev: doc._rev
+      }
+    );
+  }
+};
+
 const mapBalance = function(doc) {
   if (doc.type === 'habit') {
     for (var i = 0; i < doc.log.length; i++)
@@ -104,6 +139,8 @@ const mapBalance = function(doc) {
   } else if (doc.type === 'balance') {
     for (var i = 0; i < doc.log.length; i++)
       emit(doc._id, doc.log[i]);
+  } else if (doc.type === 'expense') {
+    if (doc.dateCharged) emit(doc._id, -(doc.amount));
   }
 };
 
@@ -113,6 +150,9 @@ let designDoc = {
   views: {
     all_habits: {
       map: mapAllHabits.toString()
+    },
+    all_expenses: {
+      map: mapAllExpenses.toString()
     },
     balance: {
       map: mapBalance.toString(),
