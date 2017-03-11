@@ -31,6 +31,15 @@ function balancePromise() {
       return Promise.reject(err);
     });
 }
+
+function expensePromise() {
+  return httpPromise('all-expenses', 'GET', 'application/json')
+    .then(function (result) {
+      return Promise.resolve(JSON.parse(result));
+    }).catch(function (err) {
+      return Promise.reject(err);
+    });
+}
 /****** End of setup for the three requests needed to initialize page ********/
 
 /* Checks whether habit is complete; if so, check off its checkbox */
@@ -38,16 +47,23 @@ Handlebars.registerHelper('isComplete', function(obj) {
   if (habitFromObject(obj).isComplete(new Date().toLocalArray()))
     return 'checked';
 });
+/* Checks whether expense has been charged */
+Handlebars.registerHelper('isCharged', function(obj) {
+  if (expenseFromObject(obj).charged())
+    return 'checked';
+});
 
 /* Invoke the request promises needed to load the page */
 function loadPage() {
-  let promises = [ templatePromise(), habitPromise(), balancePromise() ];
+  let promises = [ templatePromise(), habitPromise(),
+                   balancePromise(), expensePromise() ];
   Promise.all(promises).then(function (values) {
     /* Build the HTML using the compiled Handlebars template with the habit
      * and balance data */
     let html = values[0]({
       habits: values[1],
-      balance: values[2].balance
+      balance: values[2].balance,
+      expenses: values[3]
     });
     /* Create a div with the built HTML and append it to the HTML body */
     let div = document.createElement('div');
@@ -248,6 +264,71 @@ function documentReady() {
           result = JSON.parse(result);
           document.getElementById('balance').textContent = result.balance.toFixed(2);
           refreshHabit(div, habitFromObject(result.habit), result.habit._rev);
+          cbox.disabled = false;
+        }).catch(function (err) {
+          /* Set the checkbox to be the opposite of what it has now, the habit's
+           * completion was not toggled -- change the checkbox back */
+          console.log('Error occurred when trying to complete the habit');
+          console.log(err);
+          reloadPage();
+        });
+    });
+  }
+
+  function refreshExpense(div, expense, rev) {
+    div.dataset.rev = rev;
+
+    div.querySelector('.nameLabel').textContent = expense.name;
+    div.querySelector('.amountLabel').textContent = expense.amount;
+
+    let cbox = div.querySelector('.chargeExpense');
+    if (expense.charged()) check(cbox);
+    else uncheck(cbox);
+  }
+
+  document.getElementById('createExpense').addEventListener('click',
+    function(event) {
+      event.preventDefault();
+      document.getElementById('createExpenseForm').style.display = '';
+    });
+
+  let createExpenseForm = document.getElementById('createExpenseForm');
+  createExpenseForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    let body = {
+      name: String(createExpenseForm.name.value),
+      amount: Number(createExpenseForm.amount.value)
+    };
+    httpPromise('expense', 'PUT', 'application/json', body)
+      .then(function (result) {
+        createExpenseForm.style.display = 'none';
+        reloadPage();
+      }).catch(function (err) {
+        console.log(err);
+      });
+  });
+
+  let expCheckboxes = document.getElementsByClassName('chargeExpense');
+  for (let i = 0; i < expCheckboxes.length; i++) {
+    expCheckboxes[i].addEventListener("click", function(event) {
+      let cbox = event.currentTarget;
+      let div = cbox.parentNode;
+      toggleCheckbox(cbox);
+
+
+      let body = { id: div.dataset.id, rev: div.dataset.rev };
+      if (isChecked(cbox)) body.date = new Date().toLocalArray();
+
+      /* Disable the checkbox once the habit is being changed */
+      cbox.disabled = true;
+
+      httpPromise('charge-expense', 'POST', 'application/json', body)
+        .then(function (result) {
+          /* (Un)completion successful! The current state of the checkbox
+           * reflects the truth of what is in the database */
+          result = JSON.parse(result);
+          document.getElementById('balance').textContent = result.balance.toFixed(2);
+          refreshExpense(div, expenseFromObject(result.expense), result.expense._rev);
           cbox.disabled = false;
         }).catch(function (err) {
           /* Set the checkbox to be the opposite of what it has now, the habit's

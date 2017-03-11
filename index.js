@@ -5,6 +5,7 @@ const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/sharedLibs/habit.js');
 const Balance = require('./modules/sharedLibs/balance.js');
+const Expense = require('./modules/sharedLibs/expense.js');
 
 let router = new Router();
 let fileServer = ecstatic({root: __dirname + '/public'});
@@ -28,7 +29,8 @@ router.add('GET', /^\/lib\/(.+)$/, function (request, response, filename) {
   nodeModFiles = {
     'handlebars.min.js': '/handlebars/dist/handlebars.min.js',
     'milligram.min.css': '/milligram/dist/milligram.min.css',
-    'normalize.css': '/normalize.css/normalize.css'
+    'normalize.css': '/normalize.css/normalize.css',
+    'milligram.min.css.map': '/milligram/dist/milligram.min.css.map'
   };
   request.url = nodeModFiles[filename];
   if (!request.url) {
@@ -57,6 +59,11 @@ function simpleGET(loaderPromise, response) {
 /* Return a list of all habits in JSON for any client to consume */
 router.add('GET', /^\/all-habits$/, function (request, response) {
   simpleGET(loader.allHabits(), response);
+});
+
+/* Return a list of all expenses in JSON for any client to consume */
+router.add('GET', /^\/all-expenses/, function (request, response) {
+  simpleGET(loader.allExpenses(), response);
 });
 
 /* Get the info for a single habit given the habit's document id */
@@ -94,6 +101,32 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
       balance: docs[1].balance
     }));
   }).catch(function (err) {
+    console.log(err);
+    response.statusCode = 400;
+    return response.end(JSON.stringify(err));
+  });
+});
+
+router.add('POST', /^\/charge-expense/, function (request, response) {
+  const id = request.body.id;
+  const rev = request.body.rev;
+  const dateArray = request.body.date;
+  loader.getDoc(id).then(function (doc) {
+    let expense = new Expense(doc.name, doc.amount, doc.dateCharged);
+    if (dateArray) expense.charge(dateArray);
+    else expense.uncharge();
+    let delta = expense.toDoc();
+    delta._rev = rev;
+    return loader.updateDoc(Object.assign(doc, delta));
+  }).then(function(result) {
+    /* Get latest updates */
+    return Promise.all([loader.getDoc(id), loader.balance()]);
+  }).then(function(result) {
+    return response.end(JSON.stringify({
+      expense: result[0],
+      balance: result[1].balance
+    }));
+  }).catch(function(err) {
     console.log(err);
     response.statusCode = 400;
     return response.end(JSON.stringify(err));
@@ -154,10 +187,23 @@ router.add('DELETE', /^\/delete-habit\/(\w+)/,
   }
 );
 
+/* TODO: DRY out these create routes */
 /* Creates a new habit */
 router.add('PUT', /^\/habit$/, function (request, response) {
   const habit = new Habit(request.body.name, request.body.reward);
   loader.createHabit(habit).then(function(result) {
+    response.statusCode = 200;
+    response.end(JSON.stringify(result));
+  }).catch(function (err) {
+    response.statusCode = 400;
+    response.end(JSON.stringify(err));
+  });
+});
+
+/* Creates a new expense */
+router.add('PUT', /^\/expense$/, function (request, response) {
+  const expense = new Expense(request.body.name, request.body.amount);
+  loader.createExpense(expense).then(function(result) {
     response.statusCode = 200;
     response.end(JSON.stringify(result));
   }).catch(function (err) {
