@@ -17,38 +17,36 @@
   </form>
 
 
-  {{#if habits}}
-    <h5>Your habits:</h5>
-      {{#each habits}}
-    <div class="row">
-      <div class="habit column" data-rev="{{rev}}" data-id="{{id}}">
-        <input class="completeHabit" type="checkbox" {{isComplete this ../date}}/>
-          <span class="nameLabel">{{name}}</span>
-          $<span class="rewardLabel">{{reward}}</span>
-          <button class="button button-clear editHabit">Edit</button>
-          <button style="color:red;" class="button button-clear deleteHabit">
-            Delete
-          </button>
-          <!-- TODO: Move style to a CSS file -->
-          <form class="editHabitForm" style="display:none;">
-            <fieldset>
-              <label>Name</label>
-              <input name="name" type="text" value="{{name}}" required>
-              <label>Reward</label>
-              <input name="reward" type="number" min="0.01" step="0.01"
-               value="{{reward}}" required>
-              <button class="button button-outline cancel">Cancel</button>
-              <input class="button" value="Submit" type="Submit">
-            </fieldset>
-          </form>
-        </div>
-    </div>
-      {{/each}}
-  {{/if}}
-
-
-<div class="row">
+  <div class="row">
     <div class="column">
+      {{#if habits}}
+        <h5>Your habits:</h5>
+        {{#each habits}}
+          <div class="habit" data-rev="{{rev}}" data-id="{{id}}">
+            <input class="completeHabit" type="checkbox" {{isComplete this ../date}}/>
+            <span class="nameLabel">{{name}}</span>
+            $<span class="rewardLabel">{{reward}}</span>
+            <button class="button button-clear editHabit">Edit</button>
+            <button style="color:red;" class="button button-clear deleteHabit">
+              Delete
+            </button>
+            <!-- TODO: Move style to a CSS file -->
+            <form class="editHabitForm" style="display:none;">
+              <fieldset>
+                <label>Name</label>
+                <input name="name" type="text" value="{{name}}" required>
+                <label>Reward</label>
+                <input name="reward" type="number" min="0.01" step="0.01"
+                                                              value="{{reward}}" required>
+                <button class="button button-outline cancel">Cancel</button>
+                <input class="button" value="Submit" type="Submit">
+              </fieldset>
+            </form>
+          </div>
+        {{/each}}
+      {{/if}}
+
+
       <button class="button" id="createHabit">Create Habit</button>
       <form style="display:none;" id="createHabitForm">
         <fieldset>
@@ -56,10 +54,35 @@
           <input name="name" type="text" value="{{name}}" required>
           <label>Reward</label>
           <input name="reward" type="number" min="0.01" step="0.01"
-           value="{{reward}}" required>
+                                                        value="{{reward}}" required>
           <button class="button button-outline cancel">Cancel</button>
           <input class="button" value="Submit" type="Submit">
         </fieldset>
       </form>
     </div>
-</div>
+
+    <div class="column">
+      {{#if expenses}}
+        <h5>Your expenses:</h5>
+        {{#each expenses}}
+          <div class="expense" data-rev="{{rev}}" data-id="{{id}}">
+            <input class="chargeExpense" type="checkbox" {{isCharged this}}/>
+            <span class="nameLabel">{{name}}</span>
+            $<span class="amountLabel">{{amount}}</span>
+          </div>
+        {{/each}}
+      {{/if}}
+      <button class="button" id="createExpense">Create Expense</button>
+      <form style="display:none;" id="createExpenseForm">
+        <fieldset>
+          <label>Name</label>
+          <input name="name" type="text" value="{{name}}" required>
+          <label>Amount</label>
+          <input name="amount" type="number" min="0.01" step="0.01"
+                                                        value="{{amount}}" required>
+          <button class="button button-outline cancel">Cancel</button>
+          <input class="button" value="Submit" type="Submit">
+        </fieldset>
+      </form>
+    </div>
+  </div>
