@@ -34,26 +34,47 @@ function balancePromise() {
 /****** End of setup for the three requests needed to initialize page ********/
 
 /* Checks whether habit is complete; if so, check off its checkbox */
-Handlebars.registerHelper('isComplete', function(obj) {
-  if (habitFromObject(obj).isComplete(new Date().toLocalArray()))
+Handlebars.registerHelper('isComplete', function(obj, dateArray) {
+  if (habitFromObject(obj).isComplete(dateArray))
     return 'checked';
 });
 
 /* Invoke the request promises needed to load the page */
-function loadPage() {
+function loadPage(selectedDateArr) {
   let promises = [ templatePromise(), habitPromise(), balancePromise() ];
   Promise.all(promises).then(function (values) {
     /* Build the HTML using the compiled Handlebars template with the habit
      * and balance data */
-    let html = values[0]({
+    let content = {
       habits: values[1],
-      balance: values[2].balance
-    });
+      balance: values[2].balance,
+    };
+    if (!selectedDateArr) selectedDateArr = new Date().toLocalArray();
+    content.date = selectedDateArr;
+    let html = values[0](content);
     /* Create a div with the built HTML and append it to the HTML body */
     let div = document.createElement('div');
     div.innerHTML = html;
     document.getElementsByTagName('body')[0].appendChild(div);
-    documentReady();
+
+    /* Set array of dates in dropdown */
+    function createOption(date, selected) {
+      let opt = document.createElement('option');
+      opt.value = date.toLocalArray().join(',');
+      opt.innerHTML = date.toDateString();
+      if (selected) opt.setAttribute('selected', 'selected');
+      return opt;
+    }
+    let today = new Date();
+    let dateSelect = document.getElementById('date');
+    for (let i = 0; i < 10; i++) {
+      let currDate = new Date();
+      currDate.setDate(today.getDate() - i)
+      dateSelect.appendChild(createOption(currDate,
+        selectedDateArr.join(',') === currDate.toLocalArray().join(',')));
+    }
+
+    documentReady(selectedDateArr);
   }).catch(function (err) {
     /* Build error HTML and append to the body if any promise was rejected */
     let html = "<h2>Error</h2><p>Sorry, your content wan't found!</p>";
@@ -65,7 +86,7 @@ function loadPage() {
   });
 }
 
-function reloadPage() {
+function reloadPage(dateArr) {
   /* Deletes the div of generated content in the body, then reloads it all */
   let body = document.getElementsByTagName('body')[0]
   /* Find and remove all DIVs */
@@ -74,7 +95,7 @@ function reloadPage() {
       body.removeChild(body.childNodes[i]);
     }
   }
-  loadPage();
+  loadPage(dateArr);
 }
 
 /* Load page initially */
@@ -82,7 +103,15 @@ loadPage();
 
 /* Will only run once the handlebars template is filled out and the elements
  * have been loaded into the DOM */
-function documentReady() {
+function documentReady(selectedDateArr) {
+  /* Listener for date change */
+  document.getElementById('date').addEventListener('change', function(event) {
+    let dateArr = event.currentTarget.value.split(',').map(function (x) {
+      return Number(x);
+    });
+    reloadPage(dateArr);
+  });
+
   /* Event listeners for checkboxes */
   let editButtons = document.getElementsByClassName('editHabit');
   for (let i = 0; i < editButtons.length; i++) {
@@ -181,7 +210,7 @@ function documentReady() {
     form.reward.value = habit.reward;
 
     let cbox = div.querySelector('.completeHabit');
-    if (habit.isComplete(new Date().toLocalArray()))
+    if (habit.isComplete(selectedDateArr))
       check(cbox);
     else
       uncheck(cbox);
@@ -235,7 +264,7 @@ function documentReady() {
         id: div.dataset.id,
         rev: div.dataset.rev,
         set: isChecked(cbox),
-        date: new Date().toLocalArray()
+        date: selectedDateArr
       };
 
       /* Disable the checkbox once the habit is being changed */

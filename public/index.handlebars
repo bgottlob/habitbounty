@@ -2,6 +2,9 @@
 
 
 {{#if error}}<h6>{{error}}</h6>{{/if}}
+
+  <select id="date" name="date" style="width:40%"> </select>
+
   <h5>Your balance is: $<span id="balance">{{balance}}</span></h5>
   <button class="button button-clear" id="changeBalance">Edit</button>
   <form style="display:none;" id="balanceForm">
@@ -19,7 +22,7 @@
       {{#each habits}}
     <div class="row">
       <div class="habit column" data-rev="{{rev}}" data-id="{{id}}">
-        <input class="completeHabit" type="checkbox" {{isComplete this}}/>
+        <input class="completeHabit" type="checkbox" {{isComplete this ../date}}/>
           <span class="nameLabel">{{name}}</span>
           $<span class="rewardLabel">{{reward}}</span>
           <button class="button button-clear editHabit">Edit</button>
