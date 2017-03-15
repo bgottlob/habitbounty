@@ -346,7 +346,7 @@ function documentReady(selectedDateArr) {
 
 
       let body = { id: div.dataset.id, rev: div.dataset.rev };
-      if (isChecked(cbox)) body.date = new Date().toLocalArray();
+      if (isChecked(cbox)) body.date = selectedDateArr;
 
       /* Disable the checkbox once the habit is being changed */
       cbox.disabled = true;
