@@ -35,7 +35,6 @@ function balancePromise() {
 
 /* Checks whether habit is complete; if so, check off its checkbox */
 Handlebars.registerHelper('isComplete', function(obj, dateArray) {
-  console.log(dateArray);
   if (habitFromObject(obj).isComplete(dateArray))
     return 'checked';
 });
@@ -63,18 +62,14 @@ function loadPage(selectedDateArr) {
       let opt = document.createElement('option');
       opt.value = date.toLocalArray().join(',');
       opt.innerHTML = date.toDateString();
-      console.log(selected);
       if (selected) opt.setAttribute('selected', 'selected');
       return opt;
     }
     let today = new Date();
     let dateSelect = document.getElementById('date');
     for (let i = 0; i < 10; i++) {
-      console.log(selectedDateArr);
       let currDate = new Date();
       currDate.setDate(today.getDate() - i)
-      console.log(currDate.toLocalArray());
-      console.log('------');
       dateSelect.appendChild(createOption(currDate,
         selectedDateArr.join(',') === currDate.toLocalArray().join(',')));
     }
