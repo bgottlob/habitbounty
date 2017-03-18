@@ -1,0 +1,80 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "HabitBounty API",
+        "description": "Build personal habits and save up money at the same time!",
+        "version": "0.0.0"
+    },
+    "host": "localhost",
+    "schemes": [
+        "http"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/all-habits": {
+            "get": {
+                "summary": "All Habits",
+                "description": "The All Habits endpoint returns information about the active habits for the user. The response includes the display name, reward amount, and a log of dates completed.",
+                "tags": [
+                    "Habits"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "An array of habits",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Habit"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Habit": {
+            "type": "object",
+            "required": [ "name", "reward", "log" ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name text of habit."
+                },
+                "reward": {
+                    "type": "float",
+                    "description": "The dollar amount rewarded when completing the habit. Decimal numbers more precise than one cent will be truncated."
+                },
+                "log": {
+                    "type": "array",
+                    "description": "A list of log entries indicating when the habit was completed.",
+                    "items": {
+                        "$ref": "#/definitions/LogEntry"
+                    }
+                }
+            }
+        },
+        "LogEntry": {
+            "type": "object",
+            "required": [ "date", "reward" ],
+            "properties": {
+                "date": {
+                    "type": "date",
+                    "description": "The date the habit was completed on."
+                },
+                "reward": {
+                    "type": "float",
+                    "description": "The dollar amount rewarded when completing the habit on this date."
+                }
+            }
+        }
+    }
+}
