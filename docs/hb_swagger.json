@@ -17,9 +17,7 @@
             "get": {
                 "summary": "All Habits",
                 "description": "The All Habits endpoint returns information about the active habits for the user. The response includes the display name, reward amount, and a log of dates completed.",
-                "tags": [
-                    "Habits"
-                ],
+                "tags": [ "Habits" ],
                 "responses": {
                     "200": {
                         "description": "An array of habits",
@@ -38,7 +36,31 @@
                     }
                 }
             }
-        }
+        },
+        "/all-expenses": {
+            "get": {
+                "summary": "All Expenses",
+                "description": "The All Expenses endpoint returns information about expenses. The response includes the display name, charge amount, and the date charged for each (if applicable).",
+                "tags": [ "Expenses" ],
+                "responses": {
+                    "200": {
+                        "description": "An array of expenses",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Expense"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
     },
     "definitions": {
         "Habit": {
@@ -73,6 +95,24 @@
                 "reward": {
                     "type": "float",
                     "description": "The dollar amount rewarded when completing the habit on this date."
+                }
+            }
+        },
+        "Expense": {
+            "type": "object",
+            "required": [ "name", "amount" ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the expense."
+                },
+                "amount": {
+                    "type": "float",
+                    "description": "The dollar amount subtracted when this expense is charged."
+                },
+                "dateCharged": {
+                    "type": "date",
+                    "description": "The date the expense was charged, if it has been charged."
                 }
             }
         }
