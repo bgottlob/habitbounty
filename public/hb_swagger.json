@@ -1,0 +1,183 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "HabitBounty API",
+    "description": "Build personal habits and save up money at the same time!",
+    "version": "0.0.0"
+  },
+  "host": "localhost",
+  "schemes": [ "http" ],
+  "produces": [ "application/json" ],
+  "paths": {
+    "/all-habits": {
+      "get": {
+        "summary": "All Habits",
+        "description": "The All Habits endpoint returns information about the active habits for the user. The response includes the display name, reward amount, and a log of dates completed.",
+        "tags": [ "Habits" ],
+        "responses": {
+          "200": {
+            "description": "An array of habits",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Habit"
+              }
+            }
+          },
+          "400": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/all-expenses": {
+      "get": {
+        "summary": "All Expenses",
+        "description": "The All Expenses endpoint returns information about expenses. The response includes the display name, charge amount, and the date charged for each (if applicable).",
+        "tags": [ "Expenses" ],
+        "responses": {
+          "200": {
+            "description": "An array of expenses",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Expense"
+              }
+            }
+          },
+          "400": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/balance": {
+      "get": {
+        "summary": "Balance",
+        "description": "The Balance endpoint returns the current balance of the user.",
+        "tags": [ "Balance" ],
+        "responses": {
+          "200": {
+            "description": "A balance amount",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "type": "float",
+                  "description": "The dollar amount of the user's current balance."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/habit/{habitId}": {
+      "get":{
+        "summary": "Get Habit",
+        "description": "The Get Habit endpoint returns information about a habit.",
+        "tags": ["Habits"],
+        "parameters": [
+          {
+            "name": "habitId",
+            "in": "path",
+            "description": "The ID of the habit to be returned.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The information about a habit.",
+            "schema": {
+              "properties": [
+                {
+                  "name": "_id",
+                  "description": "The ID of the habit.",
+                  "type": "string"
+                },
+                {
+                  "name": "_rev",
+                  "description": "The revision number of the habit.",
+                  "type": "string"
+                },
+                {
+                  "name": "habit",
+                  "description": "The habit related data.",
+                  "items": { "$ref": "#/definitions/Habit" }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Habit": {
+      "type": "object",
+      "required": [ "name", "reward", "log" ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name text of habit."
+        },
+        "reward": {
+          "type": "float",
+          "description": "The dollar amount rewarded when completing the habit. Decimal numbers more precise than one cent will be truncated."
+        },
+        "log": {
+          "type": "array",
+          "description": "A list of log entries indicating when the habit was completed.",
+          "items": {
+            "$ref": "#/definitions/LogEntry"
+          }
+        }
+      }
+    },
+    "LogEntry": {
+      "type": "object",
+      "required": [ "date", "reward" ],
+      "properties": {
+        "date": {
+          "type": "date",
+          "description": "The date the habit was completed on."
+        },
+        "reward": {
+          "type": "float",
+          "description": "The dollar amount rewarded when completing the habit on this date."
+        }
+      }
+    },
+    "Expense": {
+      "type": "object",
+      "required": [ "name", "amount" ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the expense."
+        },
+        "amount": {
+          "type": "float",
+          "description": "The dollar amount subtracted when this expense is charged."
+        },
+        "dateCharged": {
+          "type": "date",
+          "description": "The date the expense was charged, if it has been charged."
+        }
+      }
+    }
+  }
+}
