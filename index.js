@@ -25,8 +25,6 @@ router.add('GET', /^\/$/, function (request, response) {
 
 router.add('GET', /^\/docs$/, function (request, response) {
   request.url = '/hb_swagger.json';
-  response.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT');
-  response.setHeader('Access-Control-Allow-Origin', '*');
   fileServer(request, response);
 });
 
@@ -221,6 +219,9 @@ router.add('PUT', /^\/expense$/, function (request, response) {
 
 http.createServer(function (request, response) {
   let body = [];
+  response.setHeader('Access-Control-Allow-Methods',
+    'DELETE, POST, GET, OPTIONS, PUT');
+  response.setHeader('Access-Control-Allow-Origin', '*');
   request.on('data', function (chunk) {
     /* Build body of request based on incoming data chunks */
     body.push(chunk);

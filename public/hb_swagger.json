@@ -5,7 +5,7 @@
     "description": "Build personal habits and save up money at the same time!",
     "version": "0.0.0"
   },
-  "host": "localhost",
+  "host": "localhost:8080",
   "schemes": [ "http" ],
   "produces": [ "application/json" ],
   "paths": {
@@ -18,8 +18,10 @@
           "200": {
             "description": "An array of habits",
             "schema": {
+              "title": "Habit Array",
               "type": "array",
               "items": {
+                "title": "Habit",
                 "$ref": "#/definitions/Habit"
               }
             }
@@ -42,8 +44,10 @@
           "200": {
             "description": "An array of expenses",
             "schema": {
+              "title": "Expense Array",
               "type": "array",
               "items": {
+                "title": "Expense",
                 "$ref": "#/definitions/Expense"
               }
             }
@@ -69,7 +73,8 @@
               "type": "object",
               "properties": {
                 "amount": {
-                  "type": "float",
+                  "type": "number",
+                  "format": "float",
                   "description": "The dollar amount of the user's current balance."
                 }
               }
@@ -102,26 +107,275 @@
           "200": {
             "description": "The information about a habit.",
             "schema": {
-              "properties": [
-                {
-                  "name": "_id",
+              "title": "Habit Data",
+              "required": [ "_id", "_rev", "habit" ],
+              "type": "object",
+              "properties": {
+                "_id": {
                   "description": "The ID of the habit.",
                   "type": "string"
                 },
-                {
-                  "name": "_rev",
+                "_rev": {
                   "description": "The revision number of the habit.",
                   "type": "string"
                 },
-                {
-                  "name": "habit",
+                "habit": {
+                  "type": "object",
                   "description": "The habit related data.",
-                  "items": { "$ref": "#/definitions/Habit" }
+                  "$ref": "#/definitions/Habit"
                 }
-              ]
+              }
             }
           }
         }
+      }
+    },
+    "/complete-habit": {
+      "post": {
+        "summary": "Complete Habit",
+        "description": "Marks a habit for completion or uncompletion on a given date.",
+        "tags": ["Habits"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "body",
+            "description": "The ID of the habit to be (un)completed",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "rev",
+            "in": "body",
+            "description": "The revision ID of the habit to be (un)completed",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "date",
+            "in": "body",
+            "description": "The date the habit should be marked for (un)completion",
+            "required": true,
+            "type": "string",
+            "format": "date"
+          },
+          {
+            "name": "set",
+            "in": "body",
+            "description": "Flag that indicates whether to complete or uncomplete the habit",
+            "required": true,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The habit was (un)completed successfully",
+            "schema": {
+              "description": "The most up to date habit information and balance. Both will change when the complete habit request is processed",
+              "type": "object",
+              "properties": {
+                "habit": {
+                  "description": "The updated habit information",
+                  "$ref": "#/definitions/Habit"
+                },
+                "balance": {
+                  "type": "number",
+                  "format": "float",
+                  "description": "The updated balance"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/charge-expense": {
+      "post": {
+        "summary": "Charge Expense",
+        "description": "(Un)charges an expense, which has the effect of subtracting the amount of the expense from the balance.",
+        "tags": ["Expenses"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "body",
+            "required": true,
+            "description": "The ID of the expense to be (un)charged",
+            "type": "string"
+          },
+          {
+            "name": "rev",
+            "in": "body",
+            "required": true,
+            "description": "The revision ID of the expense to be (un)charged",
+            "type": "string"
+          },
+          {
+            "name": "date",
+            "in": "body",
+            "description": "The date of the expense to be charged. If this parameter is not provided, the expense will be uncharged",
+            "type": "string",
+            "format": "date"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The expense was (un)charged successfully",
+            "schema": {
+              "type": "object",
+              "description": "The most up to date expense information and balance",
+              "properties": {
+                "expense": {
+                  "description": "The updated balance",
+                  "$ref": "#/definitions/Expense"
+                },
+                "balance": {
+                  "description": "The updated balance",
+                  "type": "number",
+                  "format": "float"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/change-balance": {
+      "post": {
+        "summary": "Change Balance",
+        "description": "Modifies the balance by some dollar amount",
+        "tags": ["Balance"],
+        "parameters": [
+          {
+            "name": "changeAmt",
+            "in": "body",
+            "description": "The dollar amount to change the balance by",
+            "required": true,
+            "type": "number",
+            "format": "float"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The balance was successfully changed by the given amount",
+            "schema": {
+              "description": "The updated balance",
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "type": "number",
+                  "format": "float"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/edit-habit/{habitId}": {
+      "post": {
+        "summary": "Edit Habit",
+        "description": "Modifies the information associated with a habit",
+        "tags": ["Habits"],
+        "parameters": [
+          {
+            "name": "habitId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the habit to be modified",
+            "type": "string"
+          },
+          {
+            "name": "rev",
+            "in": "body",
+            "required": true,
+            "description": "The revision ID of the habit to be modified",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "body",
+            "description": "The new name of the habit",
+            "type": "string"
+          },
+          {
+            "name": "reward",
+            "in": "body",
+            "description": "The new reward of the habit",
+            "type": "number",
+            "format": "float"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The habit information was changed successfully",
+            "schema": {
+              "description": "The most up to date habit information",
+              "type": "object",
+              "$ref": "#/defintions/Habit"
+            }
+          }
+        }
+      }
+    },
+    "/delete-habit/{habitId}": {
+      "delete": {
+        "summary": "Delete Habit",
+        "description": "Deletes a habit (marks it as inactive, but does not delete its actual database record",
+        "tags": ["Habits"],
+        "parameters": [
+          {
+            "name": "habitId",
+            "in": "path",
+            "description": "The ID of the habit to be deleted",
+            "required": true,
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "/expense": {
+      "put": {
+        "summary": "Create Expense",
+        "description": "Creates a new expense",
+        "tags": ["Expenses"],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "The name of the expense to be created",
+            "in": "body",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "in": "body",
+            "description": "The dollar amount of the expense to be created",
+            "type": "number",
+            "format": "float"
+          }
+        ]
+      }
+    },
+    "/habit": {
+      "put": {
+        "summary": "Create Habit",
+        "description": "Creates a new habit",
+        "tags": ["Habits"],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "The name of the habit to be created",
+            "required": true,
+            "in": "body",
+            "type": "string"
+          },
+          {
+            "name": "reward",
+            "in": "body",
+            "required": true,
+            "description": "The dollar amount of the reward for the habit to be created",
+            "type": "number",
+            "format": "float"
+          }
+        ]
       }
     }
   },
@@ -135,7 +389,8 @@
           "description": "The name text of habit."
         },
         "reward": {
-          "type": "float",
+          "type": "number",
+          "format": "float",
           "description": "The dollar amount rewarded when completing the habit. Decimal numbers more precise than one cent will be truncated."
         },
         "log": {
@@ -152,11 +407,13 @@
       "required": [ "date", "reward" ],
       "properties": {
         "date": {
-          "type": "date",
+          "type": "string",
+          "format": "date",
           "description": "The date the habit was completed on."
         },
         "reward": {
-          "type": "float",
+          "type": "number",
+          "format": "float",
           "description": "The dollar amount rewarded when completing the habit on this date."
         }
       }
@@ -170,11 +427,13 @@
           "description": "The name of the expense."
         },
         "amount": {
-          "type": "float",
+          "type": "number",
+          "format": "float",
           "description": "The dollar amount subtracted when this expense is charged."
         },
         "dateCharged": {
-          "type": "date",
+          "type": "string",
+          "format": "date",
           "description": "The date the expense was charged, if it has been charged."
         }
       }
