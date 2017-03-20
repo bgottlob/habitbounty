@@ -23,6 +23,11 @@ router.add('GET', /^\/$/, function (request, response) {
   fileServer(request, response);
 });
 
+router.add('GET', /^\/docs$/, function (request, response) {
+  request.url = '/hb_swagger.json';
+  fileServer(request, response);
+});
+
 /* Serve a file from an npm module to the client */
 router.add('GET', /^\/lib\/(.+)$/, function (request, response, filename) {
   /* Mapping of file names to their path relative to /node_modules */
@@ -214,6 +219,9 @@ router.add('PUT', /^\/expense$/, function (request, response) {
 
 http.createServer(function (request, response) {
   let body = [];
+  response.setHeader('Access-Control-Allow-Methods',
+    'DELETE, POST, GET, OPTIONS, PUT');
+  response.setHeader('Access-Control-Allow-Origin', '*');
   request.on('data', function (chunk) {
     /* Build body of request based on incoming data chunks */
     body.push(chunk);
