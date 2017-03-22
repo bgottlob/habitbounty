@@ -1,3 +1,7 @@
+/* Import the shared library on both server and client sides */
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
+  require('./sharedLib.js');
+
 function Expense(name, amount, dateCharged) {
   this.name = String(name);
   this.amount = Number(amount);
@@ -10,14 +14,17 @@ Expense.prototype.toDoc = function() {
   let doc =  {
     type: 'expense',
     name: this.name,
-    amount: this.amount,
-    dateCharged: this.dateCharged
+    amount: this.amount
   };
+
+  if (this.dateCharged) doc.dateCharged = this.dateCharged.dateToArray();
+  else doc.dateCharged = null;
+
   return doc;
 };
 
-Expense.prototype.charge = function(dateArray) {
-  this.dateCharged = dateArray;
+Expense.prototype.charge = function(dateStr) {
+  this.dateCharged = dateStr;
 };
 
 Expense.prototype.uncharge = function() {

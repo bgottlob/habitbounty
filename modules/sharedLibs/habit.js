@@ -16,34 +16,40 @@ function Habit(name, reward, log) {
 
 /* Checks whether the habit was completed on the day given by the
  * date array */
-Habit.prototype.isComplete = function(dateArray) {
+Habit.prototype.isComplete = function(dateStr) {
   return this.log.reduce((acc, current) => {
-    return acc || current.date.isSame(dateArray);
+    return acc || current.date === dateStr;
   }, false);
 };
 
-Habit.prototype.complete = function(dateArray) {
-  if (!this.isComplete(dateArray))
+Habit.prototype.complete = function(dateStr) {
+  if (!this.isComplete(dateStr))
     this.log.push({
-      date: dateArray,
+      date: dateStr,
       reward: this.reward
     });
 };
 
-Habit.prototype.uncomplete = function(dateArray) {
+Habit.prototype.uncomplete = function(dateStr) {
   this.log = this.log.filter(function (fromLog) {
-    return !fromLog.date.isSame(dateArray);
+    return !(fromLog.date === dateStr);
   });
 };
 
 /* Returns an object that is ready to be placed into the db as a document */
 Habit.prototype.toDoc = function() {
-  return {
+  let res = {
     name: this.name,
     reward: this.reward,
-    log: this.log,
     type: 'habit'
   };
+  res.log = this.log.map(function (curr) {
+    return {
+      reward: curr.reward,
+      date: curr.date.dateToArray()
+    };
+  });
+  return res;
 };
 
 /* Support importing into browser or node */

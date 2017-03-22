@@ -180,3 +180,34 @@ loader.pushDesignDoc = function() {
     console.log('Could not create design doc, error:\n' + err);
   });
 }
+
+loader.migrationIncMonths = function() {
+  function modifyDoc(doc) {
+    if (doc.type === 'habit' && doc.log) {
+      for (var i = 0; i < doc.log.length; i++)
+        doc.log[i].date[1] = doc.log[i].date[1] + 1;
+    } else if (doc.type === 'expense') {
+      if (doc.dateCharged) doc.dateCharged[1] = doc.dateCharged[1] + 1;
+    }
+    return doc;
+  }
+
+  throw "Comment out this throw if you REALLY want to run this migration. It will increment all months in dateCharged for expense docs and do the same for each date within the log of each habit doc."
+  db.allDocs({include_docs: true}).then(function (result) {
+    result.rows.forEach(function(row) {
+      console.log('Modifying ' + row.id);
+      console.log(row.doc);
+      if (doc.type === 'habit' || doc.type === 'expense') {
+        db.put(modifyDoc(row.doc)).then(function(res) {
+          console.log('Modified ' + row.id);
+        }).catch(function(err) {
+          console.log('Could not modify ' + row.key);
+          console.log(err);
+        });
+      }
+    });
+  }).catch(function(err) {
+    console.log('Could not query view');
+    console.log(err);
+  });
+};

@@ -6,6 +6,7 @@ const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/sharedLibs/habit.js');
 const Balance = require('./modules/sharedLibs/balance.js');
 const Expense = require('./modules/sharedLibs/expense.js');
+require('./modules/sharedLibs/sharedLib.js');
 
 let router = new Router();
 let fileServer = ecstatic({root: __dirname + '/public'});
@@ -63,17 +64,39 @@ function simpleGET(loaderPromise, response) {
 
 /* Return a list of all habits in JSON for any client to consume */
 router.add('GET', /^\/all-habits$/, function (request, response) {
-  simpleGET(loader.allHabits(), response);
+  simpleGET(
+    loader.allHabits().then(function (result) {
+      return Promise.resolve(result.map((habit) => {
+        habit.log = habit.log.map((entry) => {
+          entry.date = entry.date.dateToStr();
+          return entry;
+        });
+        return habit;
+      }));
+    }), response);
 });
 
 /* Return a list of all expenses in JSON for any client to consume */
 router.add('GET', /^\/all-expenses/, function (request, response) {
-  simpleGET(loader.allExpenses(), response);
+  simpleGET(
+    loader.allExpenses().then(function (result) {
+      return Promise.resolve(result.map((expense) => {
+        if (expense.dateCharged)
+          expense.dateCharged = expense.dateCharged.dateToStr();
+        return expense;
+      }));
+    }), response);
 });
 
 /* Get the info for a single habit given the habit's document id */
 router.add('GET', /^\/habit\/(\w+)/, function (request, response, docId) {
-  simpleGET(loader.getDoc(docId), response);
+  simpleGET(loader.getDoc(docId).then(function (doc) {
+    doc.log = doc.log.map(function (entry) {
+      entry.date = entry.date.dateToStr();
+      return entry;
+    });
+    return Promise.resolve(doc);
+  }), response);
 });
 
 /* Get the info for the balance */
@@ -86,14 +109,22 @@ router.add('GET', /^\/balance/, function (request, response) {
 router.add('POST', /^\/complete-habit$/, function (request, response) {
   const habitId = request.body.id;
   const habitRev = request.body.rev;
-  const dateArray = request.body.date;
+  const dateStr = request.body.date;
   const set = request.body.set;
   loader.getDoc(habitId).then(function (doc) {
-    let habit = new Habit(doc.name, doc.reward, doc.log);
-    if (set)
-      habit.complete(dateArray);
-    else
-      habit.uncomplete(dateArray);
+    /* TODO: create a habit from couch document function */
+    let habit = new Habit(doc.name, doc.reward,
+      doc.log.map(function (entry) {
+        return {
+          reward: entry.reward,
+          date: entry.date.dateToStr()
+        };
+      })
+    );
+
+    if (set) habit.complete(dateStr);
+    else habit.uncomplete(dateStr);
+
     var habitDelta = habit.toDoc();
     habitDelta._rev = habitRev;
     return loader.updateDoc(Object.assign(doc, habitDelta));
@@ -117,7 +148,9 @@ router.add('POST', /^\/charge-expense/, function (request, response) {
   const rev = request.body.rev;
   const dateArray = request.body.date;
   loader.getDoc(id).then(function (doc) {
-    let expense = new Expense(doc.name, doc.amount, doc.dateCharged);
+    let initDateCharged = null;
+    if (doc.dateCharged) initDateCharged = doc.dateCharged.dateToStr();
+    let expense = new Expense(doc.name, doc.amount, initDateCharged);
     if (dateArray) expense.charge(dateArray);
     else expense.uncharge();
     let delta = expense.toDoc();
@@ -127,6 +160,8 @@ router.add('POST', /^\/charge-expense/, function (request, response) {
     /* Get latest updates */
     return Promise.all([loader.getDoc(id), loader.balance()]);
   }).then(function(result) {
+    if (result[0].dateCharged)
+      result[0].dateCharged = result[0].dateCharged.dateToStr();
     return response.end(JSON.stringify({
       expense: result[0],
       balance: result[1].balance
@@ -171,6 +206,10 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
      * back to the client */
     return loader.getDoc(docId);
   }).then(function (doc) {
+    doc.log = doc.log.map(function (entry) {
+      entry.date = entry.date.dateToStr();
+      return entry;
+    });
     response.end(JSON.stringify(doc));
   }).catch(function (err) {
     console.log(err);
@@ -219,9 +258,11 @@ router.add('PUT', /^\/expense$/, function (request, response) {
 
 http.createServer(function (request, response) {
   let body = [];
+  /*
   response.setHeader('Access-Control-Allow-Methods',
     'DELETE, POST, GET, OPTIONS, PUT');
   response.setHeader('Access-Control-Allow-Origin', '*');
+  */
   request.on('data', function (chunk) {
     /* Build body of request based on incoming data chunks */
     body.push(chunk);
