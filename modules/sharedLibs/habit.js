@@ -3,12 +3,12 @@
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
   require('./sharedLib.js');
 
-function Habit(name, reward, log) {
+function Habit(name, amount, log) {
   if (!name) this.name = 'No Name Set';
   else this.name = String(name);
 
-  this.reward = Number(reward);
-  if (isNaN(this.reward)) this.reward = 0;
+  this.amount = Number(amount);
+  if (isNaN(this.amount)) this.amount = 0;
 
   this.log = log;
   if (!log) this.log = [];
@@ -26,7 +26,7 @@ Habit.prototype.complete = function(dateStr) {
   if (!this.isComplete(dateStr))
     this.log.push({
       date: dateStr,
-      reward: this.reward
+      amount: this.amount
     });
 };
 
@@ -40,12 +40,12 @@ Habit.prototype.uncomplete = function(dateStr) {
 Habit.prototype.toDoc = function() {
   let res = {
     name: this.name,
-    reward: this.reward,
+    amount: this.amount,
     type: 'habit'
   };
   res.log = this.log.map(function (curr) {
     return {
-      reward: curr.reward,
+      amount: curr.amount,
       date: curr.date.dateToArray()
     };
   });

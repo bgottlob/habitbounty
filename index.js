@@ -54,6 +54,7 @@ router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename)
 });
 
 function simpleGET(loaderPromise, response) {
+  response.setHeader('Content-Type', 'application/json');
   loaderPromise.then(function (results) {
     response.end(JSON.stringify(results));
   }).catch(function (err) {
@@ -64,28 +65,12 @@ function simpleGET(loaderPromise, response) {
 
 /* Return a list of all habits in JSON for any client to consume */
 router.add('GET', /^\/all-habits$/, function (request, response) {
-  simpleGET(
-    loader.allHabits().then(function (result) {
-      return Promise.resolve(result.map((habit) => {
-        habit.log = habit.log.map((entry) => {
-          entry.date = entry.date.dateToStr();
-          return entry;
-        });
-        return habit;
-      }));
-    }), response);
+  simpleGET(loader.allHabits(), response);
 });
 
 /* Return a list of all expenses in JSON for any client to consume */
 router.add('GET', /^\/all-expenses/, function (request, response) {
-  simpleGET(
-    loader.allExpenses().then(function (result) {
-      return Promise.resolve(result.map((expense) => {
-        if (expense.dateCharged)
-          expense.dateCharged = expense.dateCharged.dateToStr();
-        return expense;
-      }));
-    }), response);
+  simpleGET(loader.allExpenses(), response);
 });
 
 /* Get the info for a single habit given the habit's document id */
@@ -113,10 +98,10 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
   const set = request.body.set;
   loader.getDoc(habitId).then(function (doc) {
     /* TODO: create a habit from couch document function */
-    let habit = new Habit(doc.name, doc.reward,
+    let habit = new Habit(doc.name, doc.amount,
       doc.log.map(function (entry) {
         return {
-          reward: entry.reward,
+          amount: entry.amount,
           date: entry.date.dateToStr()
         };
       })
@@ -132,6 +117,11 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
     /* Get latest updates to the habit doc and balance */
     return Promise.all([loader.getDoc(habitId), loader.balance()]);
   }).then(function (docs) {
+    console.log(docs);
+    docs[0].log = docs[0].log.map((entry) => {
+      entry.date = entry.date.dateToStr();
+      return entry;
+    });
     return response.end(JSON.stringify({
       habit: docs[0],
       balance: docs[1].balance
@@ -190,12 +180,12 @@ router.add('POST', /^\/change-balance$/, function (request, response) {
 });
 
 /* Update basic info about a habit -- but not the log -- never trust the client
- * Ignores everything in the request body except for the name and reward */
+ * Ignores everything in the request body except for the name and amount */
 router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
   loader.getDoc(docId).then(function(doc) {
     let delta = {
       name: request.body.name,
-      reward: request.body.reward,
+      amount: request.body.amount,
       _rev: request.body.rev
     };
     /* If delta data went into the Habit constructor, the habit's log would
@@ -234,7 +224,7 @@ router.add('DELETE', /^\/delete-habit\/(\w+)/,
 /* TODO: DRY out these create routes */
 /* Creates a new habit */
 router.add('PUT', /^\/habit$/, function (request, response) {
-  const habit = new Habit(request.body.name, request.body.reward);
+  const habit = new Habit(request.body.name, request.body.amount);
   loader.createHabit(habit).then(function(result) {
     response.statusCode = 200;
     response.end(JSON.stringify(result));

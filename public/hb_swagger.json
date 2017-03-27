@@ -12,7 +12,7 @@
     "/all-habits": {
       "get": {
         "summary": "All Habits",
-        "description": "The All Habits endpoint returns information about the active habits for the user. The response includes the display name, reward amount, and a log of dates completed.",
+        "description": "The All Habits endpoint returns information about the active habits for the user. The response includes the display name, amount amount, and a log of dates completed.",
         "tags": [ "Habits" ],
         "responses": {
           "200": {
@@ -297,9 +297,9 @@
             "type": "string"
           },
           {
-            "name": "reward",
+            "name": "amount",
             "in": "body",
-            "description": "The new reward of the habit",
+            "description": "The new amount of the habit",
             "type": "number",
             "format": "float"
           }
@@ -368,10 +368,10 @@
             "type": "string"
           },
           {
-            "name": "reward",
+            "name": "amount",
             "in": "body",
             "required": true,
-            "description": "The dollar amount of the reward for the habit to be created",
+            "description": "The dollar amount of the amount for the habit to be created",
             "type": "number",
             "format": "float"
           }
@@ -382,13 +382,13 @@
   "definitions": {
     "Habit": {
       "type": "object",
-      "required": [ "name", "reward", "log" ],
+      "required": [ "name", "amount", "log" ],
       "properties": {
         "name": {
           "type": "string",
           "description": "The name text of habit."
         },
-        "reward": {
+        "amount": {
           "type": "number",
           "format": "float",
           "description": "The dollar amount rewarded when completing the habit. Decimal numbers more precise than one cent will be truncated."
@@ -404,14 +404,14 @@
     },
     "LogEntry": {
       "type": "object",
-      "required": [ "date", "reward" ],
+      "required": [ "date", "amount" ],
       "properties": {
         "date": {
           "type": "string",
           "format": "date",
           "description": "The date the habit was completed on."
         },
-        "reward": {
+        "amount": {
           "type": "number",
           "format": "float",
           "description": "The dollar amount rewarded when completing the habit on this date."

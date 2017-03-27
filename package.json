@@ -16,6 +16,7 @@
     "ecstatic": "^2.1.0",
     "handlebars": "^4.0.5",
     "milligram": "^1.2.0",
+    "nano": "^6.2.0",
     "pouchdb": "^6.0.6"
   }
 }

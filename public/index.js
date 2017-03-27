@@ -6,11 +6,7 @@
 function templatePromise() {
   return httpPromise('index.handlebars', 'GET', 'text/plain')
     .then(function (result) {
-      return new Promise(function (fulfill, reject) {
-        fulfill(Handlebars.compile(result));
-      });
-    }).catch(function (err) {
-      return Promise.reject(err);
+      return Promise.resolve(Handlebars.compile(result));
     });
 }
 
@@ -18,8 +14,6 @@ function habitPromise() {
   return httpPromise('all-habits', 'GET', 'application/json')
     .then(function (result) {
       return Promise.resolve(JSON.parse(result));
-    }).catch(function (err) {
-      return Promise.reject(err);
     });
 }
 
@@ -27,8 +21,6 @@ function balancePromise() {
   return httpPromise('balance', 'GET', 'application/json')
     .then(function (result) {
       return Promise.resolve(JSON.parse(result));
-    }).catch(function (err) {
-      return Promise.reject(err);
     });
 }
 
@@ -36,8 +28,6 @@ function expensePromise() {
   return httpPromise('all-expenses', 'GET', 'application/json')
     .then(function (result) {
       return Promise.resolve(JSON.parse(result));
-    }).catch(function (err) {
-      return Promise.reject(err);
     });
 }
 /****** End of setup for the three requests needed to initialize page ********/
@@ -167,7 +157,7 @@ function documentReady(selectedDateStr) {
     event.preventDefault();
     let body = {
       name: String(createHabitForm.name.value),
-      reward: Number(createHabitForm.reward.value)
+      amount: Number(createHabitForm.amount.value)
     };
     httpPromise('habit', 'PUT', 'application/json', body)
       .then(function (result) {
@@ -208,7 +198,7 @@ function documentReady(selectedDateStr) {
       event.preventDefault();
       let body = {
         name: String(form.name.value),
-        reward: Number(form.reward.value),
+        amount: Number(form.amount.value),
         rev: String(div.dataset.rev)
       };
       httpPromise('edit-habit/' + div.dataset.id, 'POST', 'application/json', body)
@@ -227,11 +217,11 @@ function documentReady(selectedDateStr) {
     div.dataset.rev = rev;
 
     div.querySelector('.nameLabel').textContent = habit.name;
-    div.querySelector('.rewardLabel').textContent = habit.reward;
+    div.querySelector('.amountLabel').textContent = habit.amount;
 
     let form = div.querySelector('.editHabitForm');
     form.name.value = habit.name;
-    form.reward.value = habit.reward;
+    form.amount.value = habit.amount;
 
     let cbox = div.querySelector('.completeHabit');
     if (habit.isComplete(selectedDateStr))
@@ -282,7 +272,9 @@ function documentReady(selectedDateStr) {
     checkboxes[i].addEventListener("click", function(event) {
       let cbox = event.currentTarget;
       let div = cbox.parentNode;
+      console.log(isChecked(cbox));
       toggleCheckbox(cbox);
+      console.log(isChecked(cbox));
 
       let body = {
         id: div.dataset.id,

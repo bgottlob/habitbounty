@@ -29,7 +29,7 @@ function httpPromise(url, method, mimeType, body) {
 }
 
 function habitFromObject(obj) {
-  return new Habit(obj.name, obj.reward, obj.log);
+  return new Habit(obj.name, obj.amount, obj.log);
 }
 function expenseFromObject(obj) {
   return new Expense(obj.name, obj.amount, obj.dateCharged);
