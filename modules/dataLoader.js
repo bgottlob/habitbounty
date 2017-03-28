@@ -1,6 +1,5 @@
 let loader = module.exports;
 
-const PouchDB = require('pouchdb');
 const Habit = require('./sharedLibs/habit.js');
 const Balance = require('./sharedLibs/balance.js');
 const Expense = require('./sharedLibs/expense.js');
@@ -8,12 +7,18 @@ const Expense = require('./sharedLibs/expense.js');
 let url, dbName;
 if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';
 if (!(dbName = process.env.HB_DB_NAME)) dbName = 'habitbounty';
-let db = new PouchDB(url + '/' + dbName, {
-  auth: {
-    username: process.env.COUCH_USER,
-    password: process.env.COUCH_PASS
-  }
-});
+
+let nano = require('nano')(url);
+let db = nano.db.use(dbName);
+
+function promisify(dbCall, args) {
+  return new Promise(function (resolve, reject) {
+    dbCall.apply(null, args.concat(function (err, body) {
+      if (err) reject(err);
+      else resolve(body);
+    }));
+  });
+}
 
 /* TODO: DRY out these create functions */
 /* Pushes a Habit object as a new document in the database */
@@ -26,7 +31,7 @@ loader.createHabit = function(habit) {
     });
   }
   else {
-    return db.post(habit.toDoc());
+    return promisify(db.insert, [habit.toDoc()]);
   }
 };
 
@@ -39,7 +44,7 @@ loader.createExpense = function(expense) {
     });
   }
   else {
-    return db.post(expense.toDoc());
+    return promisify(db.insert, [expense.toDoc()]);
   }
 };
 
@@ -53,49 +58,30 @@ loader.createBalance = function(balance) {
     });
   }
   else {
-    return db.put(balance.toDoc());
+    return promisify(db.insert, [balance.toDoc()]);
   }
 };
 
 /* Assumes the doc object contains the _id and _rev, or else couch will give
  * an error */
 loader.updateDoc = function (doc) {
-  return db.put(doc);
-};
-
-/* Assumes the doc object contains the _id and _rev, or else couch will give
- * an error */
-loader.deleteDoc = function(doc) {
-  return db.remove(doc);
+  return promisify(db.insert, [doc]);
 };
 
 loader.getDoc = function(docId) {
-  return db.get(docId);
+  return promisify(db.get, [docId]);
 };
 
-const nano = require('nano')('http://localhost:5984');
-const nanodb = nano.db.use(dbName);
-
 loader.allHabits = function() {
-  return new Promise(function (resolve, reject) {
-    nanodb.viewWithList('queries', 'all_habits', 'stringify_dates', function (err, body) {
-      if (err) return reject(err);
-      else return resolve(body);
-    });
-  });
+  return promisify(db.viewWithList,['queries', 'all_habits', 'stringify_dates']);
 };
 
 loader.allExpenses = function() {
-  return new Promise(function (resolve, reject) {
-    nanodb.viewWithList('queries', 'all_expenses', 'stringify_dates', function (err, body) {
-      if (err) return reject(err);
-      else return resolve(body);
-    });
-  });
+  return promisify(db.viewWithList,['queries', 'all_expenses', 'stringify_dates']);
 };
 
 loader.balance = function () {
-  return db.query('queries/balance', {reduce: true}).then(function (result) {
+  return promisify(db.view, ['queries', 'balance']).then(function (result) {
     return Promise.resolve({ balance: result.rows[0].value });
   }).catch(function (err) {
     return Promise.reject(err);
@@ -241,88 +227,48 @@ let designDoc = {
   validate_doc_update: validation.toString()
 };
 
-loader.pushDesignDoc = function() {
-  return db.get(designDocId).then(function (doc) {
-    /* Design doc exists, get the revision number and push the updated doc */
-    designDoc._rev = doc._rev;
-    return db.put(designDoc);
-  }).then(function (result) {
-    console.log('The design doc ' + '"' + designDocId + '" has been updated!');
-  }).catch(function (err) {
-    console.log('Error:');
-    console.log(err);
-    console.log('Attempting to push design doc for the first time');
-    return db.put(designDoc);
-  }).then(function (result) {
-    console.log(result);
-    console.log('The design doc ' + '"' + designDocId + '" has been created!');
-  }).catch(function (err) {
-    console.log('Could not create design doc, error:\n' + err);
+function authenticate() {
+  return new Promise(function (resolve, reject) {
+    nano.auth(process.env.COUCH_USER, process.env.COUCH_PASS,
+      function (err, body, headers) {
+        if (err) reject(err);
+        else {
+          if (headers && headers['set-cookie']) {
+            let authNano = require('nano')({
+              url: url,
+              cookie: headers['set-cookie']
+            });
+            resolve(authNano.db.use(dbName));
+          }
+          reject('Could not set cookie!');
+        }
+      }
+    );
   });
 }
 
-loader.migrationIncMonths = function() {
-  function modifyDoc(doc) {
-    if (doc.type === 'habit' && doc.log) {
-      for (var i = 0; i < doc.log.length; i++)
-        doc.log[i].date[1] = doc.log[i].date[1] + 1;
-    } else if (doc.type === 'expense') {
-      if (doc.dateCharged) doc.dateCharged[1] = doc.dateCharged[1] + 1;
-    }
-    return doc;
-  }
-
-  throw "Comment out this throw if you REALLY want to run this migration. It will increment all months in dateCharged for expense docs and do the same for each date within the log of each habit doc."
-  db.allDocs({include_docs: true}).then(function (result) {
-    result.rows.forEach(function(row) {
-      console.log('Modifying ' + row.id);
-      console.log(row.doc);
-      if (doc.type === 'habit' || doc.type === 'expense') {
-        db.put(modifyDoc(row.doc)).then(function(res) {
-          console.log('Modified ' + row.id);
-        }).catch(function(err) {
-          console.log('Could not modify ' + row.key);
-          console.log(err);
-        });
-      }
-    });
-  }).catch(function(err) {
-    console.log('Could not query view');
-    console.log(err);
-  });
-};
-
-loader.migrationRemoveReward = function() {
-  function modifyDoc(doc) {
-    if (doc.type === 'habit') {
-      if (doc.reward) {
-        doc.amount = doc.reward;
-        delete doc.reward;
-      }
-      if (doc.log) {
-        for (var i = 0; i < doc.log.length; i++) {
-          if (doc.log[i].reward) {
-            doc.log[i].amount = doc.log[i].reward;
-            delete doc.log[i].reward;
-          }
-        }
-      }
-    }
-    return doc;
-  }
-
-  throw "Comment out this throw if you REALLY want to run this migration. It will change the 'reward' elements to be named 'amount' in all habit docs."
-  db.allDocs({include_docs: true}).then(function (result) {
-    result.rows.forEach(function (row) {
-      console.log('Modifying ' + row.id);
-      db.put(modifyDoc(row.doc)).then(function (res) {
-        console.log('Modified ' + row.id);
-      }).catch(function (err) {
-        console.log('Could not modify ' + row.key);
-        console.log(err);
-      });
+loader.pushDesignDoc = function() {
+  return authenticate().then(function (authdb) {
+    console.log(designDocId);
+    return promisify(authdb.get, [designDocId]).then(function (doc) {
+      /* Design doc exists, get the revision number and push the updated doc */
+      designDoc._rev = doc._rev;
+      return promisify(authdb.insert, [designDoc]);
+    }).then(function (result) {
+      console.log('The design doc ' + '"' + designDocId + '" has been updated!');
+    }).catch(function (err) {
+      console.log('Error:');
+      console.log(err);
+      console.log('Attempting to push design doc for the first time');
+      return promisify(authdb.insert, [designDoc]);
+    }).then(function (result) {
+      console.log(result);
+      console.log('The design doc ' + '"' + designDocId + '" has been created!');
+    }).catch(function (err) {
+      console.log('Could not create design doc, error:\n' + err);
     });
   }).catch(function (err) {
+    console.log('Could not authenticate');
     console.log(err);
   });
 }
