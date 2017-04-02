@@ -26,6 +26,10 @@ router.add('GET', /^\/$/, function (request, response) {
 
 router.add('GET', /^\/docs$/, function (request, response) {
   request.url = '/hb_swagger.json';
+  request.url = '/hb_swagger_new.json';
+  response.setHeader('Access-Control-Allow-Methods',
+    'DELETE, POST, GET, OPTIONS, PUT');
+  response.setHeader('Access-Control-Allow-Origin', '*');
   fileServer(request, response);
 });
 
@@ -69,23 +73,17 @@ router.add('GET', /^\/all-habits$/, function (request, response) {
 });
 
 /* Return a list of all expenses in JSON for any client to consume */
-router.add('GET', /^\/all-expenses/, function (request, response) {
+router.add('GET', /^\/all-expenses$/, function (request, response) {
   simpleGET(loader.allExpenses(), response);
 });
 
 /* Get the info for a single habit given the habit's document id */
-router.add('GET', /^\/habit\/(\w+)/, function (request, response, docId) {
-  simpleGET(loader.getDoc(docId).then(function (doc) {
-    doc.log = doc.log.map(function (entry) {
-      entry.date = entry.date.dateToStr();
-      return entry;
-    });
-    return Promise.resolve(doc);
-  }), response);
+router.add('GET', /^\/habit\/(\w+)$/, function (request, response, docId) {
+  simpleGET(loader.getHabit(docId), response);
 });
 
 /* Get the info for the balance */
-router.add('GET', /^\/balance/, function (request, response) {
+router.add('GET', /^\/balance$/, function (request, response) {
   simpleGET(loader.balance(), response);
 });
 
@@ -115,13 +113,8 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
     return loader.updateDoc(Object.assign(doc, habitDelta));
   }).then(function (result) {
     /* Get latest updates to the habit doc and balance */
-    return Promise.all([loader.getDoc(habitId), loader.balance()]);
+    return Promise.all([loader.getHabit(habitId), loader.balance()]);
   }).then(function (docs) {
-    console.log(docs);
-    docs[0].log = docs[0].log.map((entry) => {
-      entry.date = entry.date.dateToStr();
-      return entry;
-    });
     return response.end(JSON.stringify({
       habit: docs[0],
       balance: docs[1].balance
@@ -133,10 +126,10 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
   });
 });
 
-router.add('POST', /^\/charge-expense/, function (request, response) {
+router.add('POST', /^\/charge-expense$/, function (request, response) {
   const id = request.body.id;
   const rev = request.body.rev;
-  const dateArray = request.body.date;
+  const dateArray = request.body.dateCharged;
   loader.getDoc(id).then(function (doc) {
     let initDateCharged = null;
     if (doc.dateCharged) initDateCharged = doc.dateCharged.dateToStr();
@@ -148,10 +141,8 @@ router.add('POST', /^\/charge-expense/, function (request, response) {
     return loader.updateDoc(Object.assign(doc, delta));
   }).then(function(result) {
     /* Get latest updates */
-    return Promise.all([loader.getDoc(id), loader.balance()]);
+    return Promise.all([loader.getExpense(id), loader.balance()]);
   }).then(function(result) {
-    if (result[0].dateCharged)
-      result[0].dateCharged = result[0].dateCharged.dateToStr();
     return response.end(JSON.stringify({
       expense: result[0],
       balance: result[1].balance
@@ -164,7 +155,7 @@ router.add('POST', /^\/charge-expense/, function (request, response) {
 });
 
 router.add('POST', /^\/change-balance$/, function (request, response) {
-  const changeAmt = Number(request.body.changeAmt);
+  const changeAmt = Number(request.body.amount);
   loader.getDoc('balance').then(function (doc) {
     let balance = new Balance(doc.log);
     balance.changeAmountBy(changeAmt);
@@ -181,25 +172,21 @@ router.add('POST', /^\/change-balance$/, function (request, response) {
 
 /* Update basic info about a habit -- but not the log -- never trust the client
  * Ignores everything in the request body except for the name and amount */
-router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
-  loader.getDoc(docId).then(function(doc) {
-    let delta = {
-      name: request.body.name,
-      amount: request.body.amount,
-      _rev: request.body.rev
-    };
+router.add('POST', /^\/edit-habit$/, function (request, response) {
+  const docId = request.body.id;
+  loader.getHabit(docId).then(function(doc) {
+    let habit = new Habit(doc.name, doc.amount, doc.log);
+    let delta = { _rev: request.body.rev, _id: docId };
+    if (request.body.name) delta.name = request.body.name;
+    if (request.body.amount) delta.name = request.body.amount;
     /* If delta data went into the Habit constructor, the habit's log would
      * be cleared; we don't want that */
-    return loader.updateDoc(Object.assign(doc, delta));
+    return loader.updateDoc(Object.assign(habit.toDoc(), delta));
   }).then(function (result) {
     /* Document successfully updated; now get the updated doc and send it
      * back to the client */
-    return loader.getDoc(docId);
+    return loader.getHabit(docId);
   }).then(function (doc) {
-    doc.log = doc.log.map(function (entry) {
-      entry.date = entry.date.dateToStr();
-      return entry;
-    });
     response.end(JSON.stringify(doc));
   }).catch(function (err) {
     console.log(err);
@@ -208,24 +195,29 @@ router.add('POST', /^\/edit-habit\/(\w+)/, function (request, response, docId) {
   });
 });
 
-router.add('DELETE', /^\/delete-habit\/(\w+)/,
-  function (request, response, docId) {
-    loader.getDoc(docId).then(function (doc) {
-      return loader.updateDoc(Object.assign(doc, { inactive: true }));
-    }).then(function (result) {
-      response.end(JSON.stringify(result));
-    }).catch(function (err) {
-      response.statusCode = 400;
-      response.end(JSON.stringify(err));
-    });
-  }
-);
+router.add('DELETE', /^\/habit$/, function (request, response) {
+  const docId = request.body.id;
+  loader.getDoc(docId).then(function (doc) {
+    let habit = new Habit(doc.name, doc.amount, doc.log);
+    delta = { _rev: request.body.rev, inactive: true, _id: request.body.id };
+    return loader.updateDoc(Object.assign(habit.toDoc(), delta));
+  }).then(function (result) {
+    return loader.getHabit(docId);
+  }).then(function (result) {
+    response.end(JSON.stringify(result));
+  }).catch(function (err) {
+    response.statusCode = 400;
+    response.end(JSON.stringify(err));
+  });
+});
 
 /* TODO: DRY out these create routes */
 /* Creates a new habit */
 router.add('PUT', /^\/habit$/, function (request, response) {
   const habit = new Habit(request.body.name, request.body.amount);
   loader.createHabit(habit).then(function(result) {
+    return loader.getHabit(result.id);
+  }).then(function (result) {
     response.statusCode = 200;
     response.end(JSON.stringify(result));
   }).catch(function (err) {
@@ -238,6 +230,8 @@ router.add('PUT', /^\/habit$/, function (request, response) {
 router.add('PUT', /^\/expense$/, function (request, response) {
   const expense = new Expense(request.body.name, request.body.amount);
   loader.createExpense(expense).then(function(result) {
+    return loader.getExpense(result.id);
+  }).then(function (result) {
     response.statusCode = 200;
     response.end(JSON.stringify(result));
   }).catch(function (err) {

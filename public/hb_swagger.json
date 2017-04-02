@@ -26,11 +26,8 @@
               }
             }
           },
-          "400": {
-            "description": "Unexpected error",
-            "schema": {
-              "$ref": "#/definitions/Error"
-            }
+          "404": {
+            "description": "Content not found"
           }
         }
       }
@@ -52,11 +49,8 @@
               }
             }
           },
-          "400": {
-            "description": "Unexpected error",
-            "schema": {
-              "$ref": "#/definitions/Error"
-            }
+          "404": {
+            "description": "Content not found"
           }
         }
       }
@@ -72,7 +66,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "amount": {
+                "balance": {
                   "type": "number",
                   "format": "float",
                   "description": "The dollar amount of the user's current balance."
@@ -108,23 +102,8 @@
             "description": "The information about a habit.",
             "schema": {
               "title": "Habit Data",
-              "required": [ "_id", "_rev", "habit" ],
               "type": "object",
-              "properties": {
-                "_id": {
-                  "description": "The ID of the habit.",
-                  "type": "string"
-                },
-                "_rev": {
-                  "description": "The revision number of the habit.",
-                  "type": "string"
-                },
-                "habit": {
-                  "type": "object",
-                  "description": "The habit related data.",
-                  "$ref": "#/definitions/Habit"
-                }
-              }
+              "$ref": "#/definitions/Habit"
             }
           }
         }
@@ -209,7 +188,7 @@
             "type": "string"
           },
           {
-            "name": "date",
+            "name": "dateCharged",
             "in": "body",
             "description": "The date of the expense to be charged. If this parameter is not provided, the expense will be uncharged",
             "type": "string",
@@ -245,7 +224,7 @@
         "tags": ["Balance"],
         "parameters": [
           {
-            "name": "changeAmt",
+            "name": "amount",
             "in": "body",
             "description": "The dollar amount to change the balance by",
             "required": true,
@@ -260,7 +239,7 @@
               "description": "The updated balance",
               "type": "object",
               "properties": {
-                "amount": {
+                "balance": {
                   "type": "number",
                   "format": "float"
                 }
@@ -270,15 +249,15 @@
         }
       }
     },
-    "/edit-habit/{habitId}": {
+    "/edit-habit": {
       "post": {
         "summary": "Edit Habit",
         "description": "Modifies the information associated with a habit",
         "tags": ["Habits"],
         "parameters": [
           {
-            "name": "habitId",
-            "in": "path",
+            "name": "id",
+            "in": "body",
             "required": true,
             "description": "The ID of the habit to be modified",
             "type": "string"
@@ -310,26 +289,10 @@
             "schema": {
               "description": "The most up to date habit information",
               "type": "object",
-              "$ref": "#/defintions/Habit"
+              "$ref": "#/definitions/Habit"
             }
           }
         }
-      }
-    },
-    "/delete-habit/{habitId}": {
-      "delete": {
-        "summary": "Delete Habit",
-        "description": "Deletes a habit (marks it as inactive, but does not delete its actual database record",
-        "tags": ["Habits"],
-        "parameters": [
-          {
-            "name": "habitId",
-            "in": "path",
-            "description": "The ID of the habit to be deleted",
-            "required": true,
-            "type": "string"
-          }
-        ]
       }
     },
     "/expense": {
@@ -351,10 +314,51 @@
             "type": "number",
             "format": "float"
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The expense was created successfully",
+            "schema": {
+              "description": "The new expense's information",
+              "type": "object",
+              "$ref": "#/definitions/Expense"
+            }
+          }
+        }
       }
     },
     "/habit": {
+      "delete": {
+        "summary": "Delete Habit",
+        "description": "Deletes a habit (marks it as inactive, but does not delete its actual database record)",
+        "tags": ["Habits"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "body",
+            "description": "The ID of the habit to be deleted",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "body",
+            "description": "The revision ID of the habit to be deleted",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The habit was inactivated",
+            "schema": {
+              "description": "The inactivated habit's information",
+              "type": "object",
+              "$ref": "#/definitions/Habit"
+            }
+          }
+        }
+      },
       "put": {
         "summary": "Create Habit",
         "description": "Creates a new habit",
@@ -375,14 +379,24 @@
             "type": "number",
             "format": "float"
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The habit was created successfully",
+            "schema": {
+              "description": "The new habit's information",
+              "type": "object",
+              "$ref": "#/definitions/Habit"
+            }
+          }
+        }
       }
     }
   },
   "definitions": {
     "Habit": {
       "type": "object",
-      "required": [ "name", "amount", "log" ],
+      "required": [ "id", "rev", "name", "amount", "log" ],
       "properties": {
         "name": {
           "type": "string",
@@ -399,6 +413,14 @@
           "items": {
             "$ref": "#/definitions/LogEntry"
           }
+        },
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for the habit."
+        },
+        "rev": {
+          "type": "string",
+          "description": "Identfies the revision number of the habit data."
         }
       }
     },
@@ -420,7 +442,7 @@
     },
     "Expense": {
       "type": "object",
-      "required": [ "name", "amount" ],
+      "required": [ "id", "rev", "name", "amount" ],
       "properties": {
         "name": {
           "type": "string",
@@ -435,6 +457,14 @@
           "type": "string",
           "format": "date",
           "description": "The date the expense was charged, if it has been charged."
+        },
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for the habit."
+        },
+        "rev": {
+          "type": "string",
+          "description": "Identfies the revision number of the habit data."
         }
       }
     }

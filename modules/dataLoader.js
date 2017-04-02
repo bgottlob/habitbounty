@@ -72,6 +72,20 @@ loader.getDoc = function(docId) {
   return promisify(db.get, [docId]);
 };
 
+loader.getHabit = function(id) {
+  return promisify(db.viewWithList, ['queries', 'all_habits', 'stringify_dates',
+    {keys: [id]}]).then(function (result) {
+      return Promise.resolve(result[0]);
+    });
+}
+
+loader.getExpense = function(id) {
+  return promisify(db.viewWithList, ['queries', 'all_expenses', 'stringify_dates',
+    {keys: [id]}]).then(function (result) {
+      return Promise.resolve(result[0]);
+    });
+}
+
 loader.allHabits = function() {
   return promisify(db.viewWithList,['queries', 'all_habits', 'stringify_dates']);
 };
@@ -144,6 +158,8 @@ const stringifyDates = function (head, req) {
     final.push(row.value);
   }
   send(toJSON(final));
+  /* TODO: THROW ERROR IF FINAL IS EMPTY */
+  //send(req.query.id);
 };
 
 const validation = function (newDoc, oldDoc, userCtx) {
@@ -166,8 +182,8 @@ const validation = function (newDoc, oldDoc, userCtx) {
       return res;
     }
     var dateArrLen = 3;
-    assert(dateArr.length !== dateArrLen,
-      'date array must have exactly ' + dateArrLen + ' elements');
+    assert(dateArr.length === dateArrLen,
+      'date array ' + dateArr + ' must have exactly ' + dateArrLen + ' elements, it has ' + dateArr.length);
     var dateStr = new Date(dateArr[0], dateArr[1]-1, dateArr[2]).toISOString();
     var match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T.*/);
     assert(match && areSame(dateArr, match),
@@ -181,23 +197,33 @@ const validation = function (newDoc, oldDoc, userCtx) {
       'name must be no more than ' + maxNameLen + ' characters long');
   }
 
+  function existAssert(values, msg) {
+    for (var i = 0; i < values.length; i++)
+      assert(typeof(values[i]) !== 'undefined', msg);
+  }
+
   if (newDoc.type === 'habit') {
-    assert(newDoc.name && newDoc.amount, 'every habit must have at least a name and amount');
+    existAssert([newDoc.name, newDoc.amount],
+      'every habit must have a name and an amount');
     nameAssert(newDoc.name);
     amountAssert(newDoc.amount);
     if (newDoc.log) {
       for (var i = 0; i < newDoc.log.length; i++) {
-        assert(newDoc.date && newDoc.amount, 'every log entry must have a date and amount');
+        existAssert([newDoc.log[i].amount, newDoc.log[i].date],
+          'every log entry must have an amount and date array');
         amountAssert(newDoc.log[i].amount);
         dateAssert(newDoc.log[i].date);
       }
     }
   } else if (newDoc.type === 'expense') {
-    assert(newDoc.name && newDoc.amount, 'every expense must have at least a name and amount');
+    existAssert([newDoc.name, newDoc.amount],
+      'every expense must have a name and an amount');
+    nameAssert(newDoc.name);
+    amountAssert(newDoc.amount);
     if (newDoc.dateCharged) dateAssert(newDoc.dateCharged);
     else assert(newDoc.dateCharged === null);
   } else if (newDoc.type === 'balance') {
-    assert(newDoc.log, 'every balance doc must have a log');
+    assert([newDoc.log], 'every balance doc must have a log');
     for (var i = 0; i < newDoc.log.length; i++)
       amountAssert(newDoc.log[i]);
   } else {
