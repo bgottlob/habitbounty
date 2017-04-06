@@ -90,6 +90,10 @@ loader.allHabits = function() {
   return promisify(db.viewWithList,['queries', 'all_habits', 'stringify_dates']);
 };
 
+loader.activeHabits = function() {
+  return promisify(db.viewWithList,['queries', 'active_habits', 'stringify_dates']);
+};
+
 loader.allExpenses = function() {
   return promisify(db.viewWithList,['queries', 'all_expenses', 'stringify_dates']);
 };
@@ -103,9 +107,19 @@ loader.balance = function () {
 };
 
 const mapAllHabits = function(doc) {
-  if (!doc.inactive && doc.type === 'habit') {
+  if (doc.type === 'habit') {
     emit(doc._id,
-      { name: doc.name, amount: doc.amount, log: doc.log, rev: doc._rev }
+      { name: doc.name, amount: doc.amount, log: doc.log, rev: doc._rev,
+        inactive: doc.inactive }
+    );
+  }
+};
+
+const mapActiveHabits = function(doc) {
+  if (doc.type === 'habit' && !doc.inactive) {
+    emit(doc._id,
+      { name: doc.name, amount: doc.amount, log: doc.log, rev: doc._rev,
+        inactive: doc.inactive }
     );
   }
 };
@@ -241,6 +255,9 @@ let designDoc = {
     },
     all_expenses: {
       map: mapAllExpenses.toString()
+    },
+    active_habits: {
+      map: mapActiveHabits.toString()
     },
     balance: {
       map: mapBalance.toString(),
