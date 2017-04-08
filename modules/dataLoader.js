@@ -9,9 +9,51 @@ if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';
 if (!(dbName = process.env.HB_DB_NAME)) dbName = 'habitbounty';
 
 let nano = require('nano')(url);
-let db = nano.db.use(dbName);
+let db = null;
+authenticate().then((authedNano) => {
+  nano = authedNano;
+  return promisify(nano.db.list);
+}).then((dbList) => {
+  if (dbList.indexOf(dbName) === -1) {
+    console.log(dbName + " does not exist, creating it now");
+    return promisify(nano.db.create, [dbName]).then((result) => {
+      console.log("Created an empty database called " + dbName);
+      db = nano.db.use(dbName);
+      console.log("Populating the new database with the bare minimum needed" +
+        " to run HabitBounty");
+      return Promise.all([
+        loader.createBalance(new Balance(0)), loader.pushDesignDoc()
+      ]);
+    });
+  }
+}).then((result) => {
+  db = nano.db.use(dbName);
+}).catch((err) => {
+  console.log(err);
+});
+
+function authenticate() {
+  return new Promise(function (resolve, reject) {
+    nano.auth(process.env.COUCH_USER, process.env.COUCH_PASS,
+      function (err, body, headers) {
+        if (err) reject(err);
+        else {
+          if (headers && headers['set-cookie']) {
+            let authNano = require('nano')({
+              url: url,
+              cookie: headers['set-cookie']
+            });
+            resolve(authNano);
+          }
+          reject('Could not set cookie!');
+        }
+      }
+    );
+  });
+}
 
 function promisify(dbCall, args) {
+  if (!args) args = [];
   return new Promise(function (resolve, reject) {
     dbCall.apply(null, args.concat(function (err, body) {
       if (err) reject(err);
@@ -56,9 +98,14 @@ loader.createBalance = function(balance) {
       param: balance,
       message: 'The parameter is not an instance of the Balance prototype'
     });
-  }
-  else {
-    return promisify(db.insert, [balance.toDoc()]);
+  } else {
+    loader.getDoc('balance').then((doc) => {
+      return Promise.resolve('A balance doc exists already, the requested' +
+        'balance doc is not being created');
+    }).catch((err) => {
+      console.log('A balance doc does not exist yet, it is being created now');
+      return promisify(db.insert, [balance.toDoc()]);
+    });
   }
 };
 
@@ -270,48 +317,23 @@ let designDoc = {
   validate_doc_update: validation.toString()
 };
 
-function authenticate() {
-  return new Promise(function (resolve, reject) {
-    nano.auth(process.env.COUCH_USER, process.env.COUCH_PASS,
-      function (err, body, headers) {
-        if (err) reject(err);
-        else {
-          if (headers && headers['set-cookie']) {
-            let authNano = require('nano')({
-              url: url,
-              cookie: headers['set-cookie']
-            });
-            resolve(authNano.db.use(dbName));
-          }
-          reject('Could not set cookie!');
-        }
-      }
-    );
-  });
-}
 
 loader.pushDesignDoc = function() {
-  return authenticate().then(function (authdb) {
-    console.log(designDocId);
-    return promisify(authdb.get, [designDocId]).then(function (doc) {
-      /* Design doc exists, get the revision number and push the updated doc */
-      designDoc._rev = doc._rev;
-      return promisify(authdb.insert, [designDoc]);
-    }).then(function (result) {
-      console.log('The design doc ' + '"' + designDocId + '" has been updated!');
-    }).catch(function (err) {
-      console.log('Error:');
-      console.log(err);
-      console.log('Attempting to push design doc for the first time');
-      return promisify(authdb.insert, [designDoc]);
-    }).then(function (result) {
-      console.log(result);
-      console.log('The design doc ' + '"' + designDocId + '" has been created!');
-    }).catch(function (err) {
-      console.log('Could not create design doc, error:\n' + err);
-    });
+  return promisify(db.get, [designDocId]).then(function (doc) {
+    /* Design doc exists, get the revision number and push the updated doc */
+    designDoc._rev = doc._rev;
+    return promisify(db.insert, [designDoc]);
+  }).then(function (result) {
+    console.log('The design doc ' + '"' + designDocId + '" has been updated!');
   }).catch(function (err) {
-    console.log('Could not authenticate');
+    console.log('Error:');
     console.log(err);
+    console.log('Attempting to push design doc for the first time');
+    return promisify(db.insert, [designDoc]);
+  }).then(function (result) {
+    console.log(result);
+    console.log('The design doc ' + '"' + designDocId + '" has been created!');
+  }).catch(function (err) {
+    console.log('Could not create design doc, error:\n' + err);
   });
 }
