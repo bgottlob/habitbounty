@@ -337,3 +337,8 @@ loader.pushDesignDoc = function() {
     console.log('Could not create design doc, error:\n' + err);
   });
 }
+
+loader.deleteDB = function (name) {
+  if (!name) name = dbName;
+  return promisify(nano.db.destroy, [name]);
+}
