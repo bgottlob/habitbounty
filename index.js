@@ -73,24 +73,29 @@ function respondBadReq(response, reason) {
 
 function validateRequest(body, required, optional, moreFunc) {
   /* Must run this before deleting keys from the body */
-  let moreMsg = ''
-  if (moreFunc) moreMsg = moreFunc(body);
-  let missing = required.filter((field) => {
-    let exists = typeof(body[field]) === 'undefined';
-    delete body[field];
-    return exists;
-  });
-  for (let i = 0; optional && i < optional.length; i++)
-    delete body[optional[i]];
+
   let invalidMsg = '';
+
+  let all = [];
+  if (required) all = all.concat(required);
+  if (optional) all = all.concat(optional);
+
+  let missing = required.filter((field) => {
+    return typeof(body[field]) === 'undefined';
+  });
   if (missing.length > 0)
     invalidMsg += 'the following fields are required in the request: ' + missing.join(', ') + '. ';
 
-  let extras = Object.keys(body);
-  if (Object.keys(body).length > 0)
+  let extras = Object.keys(body).filter((field) => {
+    return all.indexOf(field) === -1
+  });
+  if (extras.length > 0)
     invalidMsg += 'the following fields are not allowed in the request: ' + extras.join(', ') + '. ';
 
-  invalidMsg += moreMsg;
+  if (moreFunc) {
+    moreMsg = moreFunc(body);
+    if (moreMsg) invalidMsg += moreMsg;
+  }
 
   if (invalidMsg === '') return false;
   else return invalidMsg;
@@ -141,8 +146,10 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
       else habit.uncomplete(dateStr);
 
       var habitDelta = habit.toDoc();
+      habitDelta._id = habitId;
       habitDelta._rev = habitRev;
-      return loader.updateDoc(Object.assign(doc, habitDelta));
+      let fulldoc = Object.assign(doc, habitDelta);
+      return loader.updateDoc(fulldoc);
     }).then(function (result) {
       /* Get latest updates to the habit doc and balance */
       return Promise.all([loader.getHabit(habitId), loader.balance()]);
@@ -160,7 +167,6 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
 });
 
 router.add('POST', /^\/charge-expense$/, function (request, response) {
-  const invalidMsg = validateRequest(request.body, ['id', 'rev', 'dateCharged']);
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
@@ -227,15 +233,14 @@ router.add('POST', /^\/edit-habit$/, function (request, response) {
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
+    const docId = request.body.id;
     loader.getHabit(docId).then(function(doc) {
-      const docId = request.body.id;
       let habit = new Habit(doc.name, doc.amount, doc.log);
       let delta = { _rev: request.body.rev, _id: docId };
       if (request.body.name) delta.name = request.body.name;
       if (request.body.amount) delta.amount = request.body.amount;
       /* If delta data went into the Habit constructor, the habit's log would
        * be cleared; we don't want that */
-      console.log(Object.assign(habit.toDoc(), delta));
       return loader.updateDoc(Object.assign(habit.toDoc(), delta));
     }).then(function (result) {
       /* Document successfully updated; now get the updated doc and send it

@@ -8,24 +8,37 @@ let url, dbName;
 if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';
 if (!(dbName = process.env.HB_DB_NAME)) dbName = 'habitbounty';
 
+loader.createDB = function() {
+  return promisify(nano.db.list).then(function (dbList) {
+    if (dbList.indexOf(dbName) === -1) {
+      console.log(dbName + " does not exist, creating it now");
+      return promisify(nano.db.create, [dbName]).then(function(result) {
+        console.log("Created an empty database called " + dbName);
+        db = nano.db.use(dbName);
+        console.log("Populating the new database with the bare minimum needed" +
+          " to run HabitBounty");
+        return Promise.all([
+          loader.createBalance(new Balance(0)), loader.pushDesignDoc()
+        ]).then(function (res) {
+          console.log('All needed documents created!');
+        }).catch(function (err) {
+          console.log('Could not create all needed documents');
+          console.log(err);
+        });
+      }).catch(function(err) {
+        console.log('The database ' + dbName + ' could not be created');
+        console.log(err.reason);
+      });
+    } else {
+      console.log(dbName + ' already exists, no need to create it');
+    }
+  });
+}
+
 let nano = require('nano')(url);
 let db = null;
 authenticate().then((authedNano) => {
   nano = authedNano;
-  return promisify(nano.db.list);
-}).then((dbList) => {
-  if (dbList.indexOf(dbName) === -1) {
-    console.log(dbName + " does not exist, creating it now");
-    return promisify(nano.db.create, [dbName]).then((result) => {
-      console.log("Created an empty database called " + dbName);
-      db = nano.db.use(dbName);
-      console.log("Populating the new database with the bare minimum needed" +
-        " to run HabitBounty");
-      return Promise.all([
-        loader.createBalance(new Balance(0)), loader.pushDesignDoc()
-      ]);
-    });
-  }
 }).then((result) => {
   db = nano.db.use(dbName);
 }).catch((err) => {
@@ -60,6 +73,15 @@ function promisify(dbCall, args) {
       else resolve(body);
     }));
   });
+}
+
+
+loader.useDB = function(name) {
+  console.log('Switching db from ' + dbName + ' to ' + name);
+  dbName = name;
+  console.log(dbName);
+  db = nano.db.use(dbName);
+  console.log(db);
 }
 
 /* TODO: DRY out these create functions */
@@ -121,8 +143,9 @@ loader.getDoc = function(docId) {
 
 loader.getHabit = function(id) {
   return promisify(db.viewWithList, ['queries', 'all_habits', 'stringify_dates',
-    {keys: [id]}]).then(function (result) {
-      return Promise.resolve(result[0]);
+    {key: id}]).then(function (result) {
+      if (result[0]) return Promise.resolve(result[0]);
+      else return Promise.reject('habit not found');
     });
 }
 
@@ -326,19 +349,23 @@ loader.pushDesignDoc = function() {
   }).then(function (result) {
     console.log('The design doc ' + '"' + designDocId + '" has been updated!');
   }).catch(function (err) {
-    console.log('Error:');
-    console.log(err);
-    console.log('Attempting to push design doc for the first time');
-    return promisify(db.insert, [designDoc]);
-  }).then(function (result) {
-    console.log(result);
-    console.log('The design doc ' + '"' + designDocId + '" has been created!');
-  }).catch(function (err) {
-    console.log('Could not create design doc, error:\n' + err);
+    if (err.error === 'not_found') {
+      console.log('Design doc not found, attempting to push it for the first time');
+      return promisify(db.insert, [designDoc]).then(function (result) {
+        console.log(result);
+        console.log('The design doc ' + '"' + designDocId + '" has been created!');
+      }).catch(function (err) {
+        console.log('Could not create design doc, error:\n' + err);
+      });
+    } else {
+      console.log(err);
+    }
   });
 }
 
 loader.deleteDB = function (name) {
   if (!name) name = dbName;
-  return promisify(nano.db.destroy, [name]);
+  return promisify(nano.db.destroy, [name]).then(function(res) {
+    console.log('The database ' + name + ' was deleted!');
+  });
 }

@@ -4,7 +4,7 @@
   "description": "An app that helps you keep up habits by setting aside money rewards",
   "main": "index.js",
   "scripts": {
-    "test": "export HB_DB_NAME='habitbounty-test' && mocha"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
