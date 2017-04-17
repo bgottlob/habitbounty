@@ -1,7 +1,7 @@
 const http = require('http');
+const ecstatic =  require('ecstatic');
 const loader = require('./modules/dataLoader.js');
 const Router = require('./modules/router.js')
-const ecstatic =  require('ecstatic');
 const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/sharedLibs/habit.js');
 const Balance = require('./modules/sharedLibs/balance.js');
@@ -26,6 +26,7 @@ router.add('GET', /^\/$/, function (request, response) {
 
 router.add('GET', /^\/docs$/, function (request, response) {
   request.url = '/hb_swagger.json';
+  /* Necesary headers for use with Swagger UI */
   response.setHeader('Access-Control-Allow-Methods',
     'DELETE, POST, GET, OPTIONS, PUT');
   response.setHeader('Access-Control-Allow-Origin', '*');
@@ -72,7 +73,6 @@ function respondBadReq(response, reason) {
 }
 
 function validateRequest(body, required, optional, moreFunc) {
-  /* Must run this before deleting keys from the body */
 
   let invalidMsg = '';
 
@@ -130,29 +130,24 @@ router.add('GET', /^\/balance$/, function (request, response) {
 /* Completes a habit: Adds the provided date array to the habit's log and
  * changes the balance appropriately */
 router.add('POST', /^\/complete-habit$/, function (request, response) {
-  const invalidMsg = validateRequest(request.body, ['id', 'rev', 'date', 'set']);
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['id', 'rev', 'date', 'set']);
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    const habitId = request.body.id;
-    const habitRev = request.body.rev;
-    const dateStr = request.body.date;
-    const set = request.body.set;
-    loader.getHabit(habitId).then(function (doc) {
-      /* TODO: create a habit from couch document function */
+    loader.getHabit(body.id).then(function (doc) {
       let habit = new Habit(doc.name, doc.amount, doc.log);
 
-      if (set) habit.complete(dateStr);
-      else habit.uncomplete(dateStr);
+      if (body.set) habit.complete(body.date);
+      else habit.uncomplete(body.date);
 
-      var habitDelta = habit.toDoc();
-      habitDelta._id = habitId;
-      habitDelta._rev = habitRev;
-      let fulldoc = Object.assign(doc, habitDelta);
-      return loader.updateDoc(fulldoc);
+      let newDoc = habit.toDoc();
+      newDoc._id = body.id;
+      newDoc._rev = body.rev;
+      return loader.updateDoc(newDoc);
     }).then(function (result) {
       /* Get latest updates to the habit doc and balance */
-      return Promise.all([loader.getHabit(habitId), loader.balance()]);
+      return Promise.all([loader.getHabit(body.id), loader.balance()]);
     }).then(function (docs) {
       return response.end(JSON.stringify({
         habit: docs[0],
@@ -167,24 +162,23 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
 });
 
 router.add('POST', /^\/charge-expense$/, function (request, response) {
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['id', 'rev', 'dateCharged']);
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    loader.getDoc(id).then(function (doc) {
-      const id = request.body.id;
-      const rev = request.body.rev;
-      const dateArray = request.body.dateCharged;
-      let initDateCharged = null;
-      if (doc.dateCharged) initDateCharged = doc.dateCharged.dateToStr();
-      let expense = new Expense(doc.name, doc.amount, initDateCharged);
-      if (dateArray) expense.charge(dateArray);
+    loader.getExpense(body.id).then(function (doc) {
+      let expense = new Expense(doc.name, doc.amount, doc.dateCharged);
+      if (body.dateCharged) expense.charge(body.dateCharged);
       else expense.uncharge();
-      let delta = expense.toDoc();
-      delta._rev = rev;
-      return loader.updateDoc(Object.assign(doc, delta));
+
+      let newDoc = expense.toDoc();
+      newDoc._id = body.id;
+      newDoc._rev = body.rev;
+      return loader.updateDoc(newDoc);
     }).then(function(result) {
       /* Get latest updates */
-      return Promise.all([loader.getExpense(id), loader.balance()]);
+      return Promise.all([loader.getExpense(body.id), loader.balance()]);
     }).then(function(result) {
       return response.end(JSON.stringify({
         expense: result[0],
@@ -199,14 +193,15 @@ router.add('POST', /^\/charge-expense$/, function (request, response) {
 });
 
 router.add('POST', /^\/change-balance$/, function (request, response) {
-  const invalidMsg = validateRequest(request.body, ['amount'], null, (body) => {
-    if (isNaN(body.amount)) return 'amount must be a valid number';
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['amount'], null, (b) => {
+    if (isNaN(b.amount)) return 'amount must be a valid number';
   });
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
     loader.getDoc('balance').then(function (doc) {
-      const changeAmt = Number(request.body.amount);
+      const changeAmt = Number(body.amount);
       let balance = new Balance(doc.log);
       balance.changeAmountBy(changeAmt);
       return loader.updateDoc(Object.assign(doc, balance.toDoc()));
@@ -224,28 +219,26 @@ router.add('POST', /^\/change-balance$/, function (request, response) {
 /* Update basic info about a habit -- but not the log -- never trust the client
  * Ignores everything in the request body except for the name and amount */
 router.add('POST', /^\/edit-habit$/, function (request, response) {
-  const invalidMsg = validateRequest(request.body,
-    ['id', 'rev'], ['name', 'amount'], (body) => {
-      if (typeof(body.name) === 'undefined' && typeof(body.amount) === 'undefined')
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['id', 'rev'], ['name', 'amount'],
+    (b) => {
+      if (typeof(b.name) === 'undefined' && typeof(b.amount) === 'undefined')
         return 'either name, amount, or both must be provided';
     }
   );
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    const docId = request.body.id;
-    loader.getHabit(docId).then(function(doc) {
+    loader.getHabit(body.id).then(function(doc) {
       let habit = new Habit(doc.name, doc.amount, doc.log);
-      let delta = { _rev: request.body.rev, _id: docId };
-      if (request.body.name) delta.name = request.body.name;
-      if (request.body.amount) delta.amount = request.body.amount;
-      /* If delta data went into the Habit constructor, the habit's log would
-       * be cleared; we don't want that */
-      return loader.updateDoc(Object.assign(habit.toDoc(), delta));
+      if (body.name) habit.name = body.name;
+      if (body.amount) habit.amount = body.amount;
+      let newDoc = habit.toDoc();
+      newDoc._id = body.id;
+      newDoc._rev = body.rev;
+      return loader.updateDoc(newDoc);
     }).then(function (result) {
-      /* Document successfully updated; now get the updated doc and send it
-       * back to the client */
-      return loader.getHabit(docId);
+      return loader.getHabit(body.id);
     }).then(function (doc) {
       response.end(JSON.stringify(doc));
     }).catch(function (err) {
@@ -257,17 +250,20 @@ router.add('POST', /^\/edit-habit$/, function (request, response) {
 });
 
 router.add('DELETE', /^\/habit$/, function (request, response) {
-  const invalidMsg = validateRequest(request.body, ['id', 'rev']);
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['id', 'rev']);
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
     loader.getHabit(docId).then(function (doc) {
-      const docId = request.body.id;
       let habit = new Habit(doc.name, doc.amount, doc.log);
-      delta = { _rev: request.body.rev, inactive: true, _id: request.body.id };
-      return loader.updateDoc(Object.assign(habit.toDoc(), delta));
+      let newDoc = habit.toDoc();
+      newDoc._id = body.id;
+      newDoc._rev = body.rev;
+      newDoc.inactive = true;
+      return loader.updateDoc(newDoc);
     }).then(function (result) {
-      return loader.getHabit(docId);
+      return loader.getHabit(body.id);
     }).then(function (result) {
       response.end(JSON.stringify(result));
     }).catch(function (err) {
@@ -280,11 +276,12 @@ router.add('DELETE', /^\/habit$/, function (request, response) {
 /* TODO: DRY out these create routes */
 /* Creates a new habit */
 router.add('PUT', /^\/habit$/, function (request, response) {
-  const invalidMsg = validateRequest(request.body, ['name', 'amount']);
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['name', 'amount']);
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    const habit = new Habit(request.body.name, request.body.amount);
+    const habit = new Habit(body.name, body.amount);
     loader.createHabit(habit).then(function(result) {
       return loader.getHabit(result.id);
     }).then(function (result) {
@@ -299,10 +296,12 @@ router.add('PUT', /^\/habit$/, function (request, response) {
 
 /* Creates a new expense */
 router.add('PUT', /^\/expense$/, function (request, response) {
-  const invalidMsg = validateRequest(request.body, ['name', 'amount']);
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['name', 'amount']);
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
+    const expense = new Expense(body.name, body.amount);
     loader.createExpense(expense).then(function(result) {
       return loader.getExpense(result.id);
     }).then(function (result) {
@@ -317,11 +316,6 @@ router.add('PUT', /^\/expense$/, function (request, response) {
 
 http.createServer(function (request, response) {
   let body = [];
-  /*
-  response.setHeader('Access-Control-Allow-Methods',
-    'DELETE, POST, GET, OPTIONS, PUT');
-  response.setHeader('Access-Control-Allow-Origin', '*');
-  */
   request.on('data', function (chunk) {
     /* Build body of request based on incoming data chunks */
     body.push(chunk);

@@ -17,7 +17,7 @@ function httpPromiseCB(resolve, reject) {
       let body = [];
       res.on('data', (chunk) => {
         body.push(chunk);
-      });
+     });
       res.on('end', () => {
         body = JSON.parse(body.join());
         res.body = body;

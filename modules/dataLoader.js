@@ -286,6 +286,9 @@ const validation = function (newDoc, oldDoc, userCtx) {
       assert(typeof(values[i]) !== 'undefined', msg);
   }
 
+  assert(typeof(newDoc.id) === 'undefined' && typeof(newDoc.rev) === 'undefined',
+    'no docs should have attribubtes named `id` or `rev`, use `_id` and `_rev`');
+
   if (newDoc.type === 'habit') {
     existAssert([newDoc.name, newDoc.amount],
       'every habit must have a name and an amount');
