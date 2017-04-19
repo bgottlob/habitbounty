@@ -33,8 +33,8 @@ function expensePromise() {
 /****** End of setup for the three requests needed to initialize page ********/
 
 /* Checks whether habit is complete; if so, check off its checkbox */
-Handlebars.registerHelper('isComplete', function(obj, dateStr) {
-  if (habitFromObject(obj).isComplete(dateStr))
+Handlebars.registerHelper('isComplete', function(obj) {
+  if (habitFromObject(obj).isComplete(getDate()))
     return 'checked';
 });
 /* Checks whether expense has been charged */
@@ -43,55 +43,86 @@ Handlebars.registerHelper('isCharged', function(obj) {
     return 'checked';
 });
 
+/* Using getters and setters for the date as an abstraction layer, since
+ * using window.date may change */
+/* Retrieves the ISO 8601 string of the selected date value */
+function getDate() {
+  /* return document.getElementById('date').value; */
+  return window.date;
+}
+
+function setDate(date) {
+  window.date = date;
+}
+
+function buildDatePicker() {
+  function createOption(dateStr, selected) {
+    let opt = document.createElement('option');
+    opt.value = dateStr;
+    /* TODO: Format this string nicely */
+    opt.innerHTML = dateStr;
+    if (selected) opt.setAttribute('selected', 'selected');
+    return opt;
+  }
+
+  /* Set array of dates in dropdown */
+  let dateSelect = document.getElementById('date');
+  let today = new Date();
+  today.setHours(0,0,0,0);
+  for (let i = 0; i < 10; i++) {
+    let currDate = new Date();
+    currDate.setHours(0,0,0,0);
+    currDate.setDate(today.getDate() - i);
+    let currDateStr = currDate.toISOString().split('T')[0];
+    dateSelect.appendChild(
+      createOption(currDateStr, getDate() === currDateStr)
+    );
+  }
+
+  /* Listener for date change */
+  dateSelect.addEventListener('change', function(event) {
+    setDate(event.currentTarget.value);
+    reloadPage();
+  });
+}
+
 /* Invoke the request promises needed to load the page */
-function loadPage(selectedDateStr) {
-  let promises = [ templatePromise(), habitPromise(),
-                   balancePromise(), expensePromise() ];
+function loadPage() {
+  let today = new Date();
+  /* Work with local date without time */
+  today.setHours(0,0,0,0);
+  if (!getDate()) {
+    setDate(today.toISOString().split('T')[0]);
+    console.log('No date, setting it to ' + getDate());
+  } else {
+    console.log('The date is already set to ' + getDate());
+  }
+
+  /* Fire off promises to the server to get the page, habit form, and expense
+   * form templates along with habit, balance, and expense info */
+  let promises = [
+    templatePromise(), habitPromise(), balancePromise(), expensePromise(),
+    httpPromise('habitForm.handlebars', 'GET', 'text/plain'),
+    httpPromise('expenseForm.handlebars', 'GET', 'text/plain')
+  ];
+
   Promise.all(promises).then(function (values) {
     /* Build the HTML using the compiled Handlebars template with the habit
      * and balance data */
     let content = {
       habits: values[1],
       balance: values[2].balance,
-      expenses: values[3]
+      expenses: values[3],
+      date: getDate()
     };
-    if (!selectedDateStr) {
-      let today = new Date();
-      /* Work with local date without time */
-      today.setHours(0,0,0,0);
-      selectedDateStr = today.toISOString().split('T')[0];
-    }
-    console.log('Selected date string: ' + selectedDateStr);
-    content.date = selectedDateStr;
+    Handlebars.registerPartial('habitForm', values[4]);
+    Handlebars.registerPartial('expenseForm', values[5]);
     let html = values[0](content);
     /* Create a div with the built HTML and append it to the HTML body */
     let div = document.createElement('div');
     div.innerHTML = html;
     document.getElementsByTagName('body')[0].appendChild(div);
-
-    /* Set array of dates in dropdown */
-    function createOption(dateStr, selected) {
-      let opt = document.createElement('option');
-      opt.value = dateStr;
-      /* TODO: Format this string nicely */
-      opt.innerHTML = dateStr;
-      if (selected) opt.setAttribute('selected', 'selected');
-      return opt;
-    }
-    let today = new Date();
-    today.setHours(0,0,0,0);
-    let dateSelect = document.getElementById('date');
-    for (let i = 0; i < 10; i++) {
-      let currDate = new Date();
-      currDate.setHours(0,0,0,0);
-      currDate.setDate(today.getDate() - i);
-      let currDateStr = currDate.toISOString().split('T')[0];
-      dateSelect.appendChild(createOption(currDateStr,
-        selectedDateStr === currDateStr
-      ));
-    }
-
-    documentReady(selectedDateStr);
+    documentReady();
   }).catch(function (err) {
     /* Build error HTML and append to the body if any promise was rejected */
     let html = "<h2>Error</h2><p>Sorry, your content wan't found!</p>";
@@ -103,7 +134,7 @@ function loadPage(selectedDateStr) {
   });
 }
 
-function reloadPage(dateStr) {
+function reloadPage() {
   /* Deletes the div of generated content in the body, then reloads it all */
   let body = document.getElementsByTagName('body')[0]
   /* Find and remove all DIVs */
@@ -112,7 +143,7 @@ function reloadPage(dateStr) {
       body.removeChild(body.childNodes[i]);
     }
   }
-  loadPage(dateStr);
+  loadPage();
 }
 
 /* Load page initially */
@@ -120,13 +151,9 @@ loadPage();
 
 /* Will only run once the handlebars template is filled out and the elements
  * have been loaded into the DOM */
-function documentReady(selectedDateStr) {
-  /* Listener for date change */
-  document.getElementById('date').addEventListener('change', function(event) {
-    reloadPage(event.currentTarget.value);
-  });
+function documentReady() {
+  buildDatePicker();
 
-  /* Event listeners for checkboxes */
   let editButtons = document.getElementsByClassName('editHabit');
   for (let i = 0; i < editButtons.length; i++) {
     editButtons[i].addEventListener('click', function (event) {
@@ -153,20 +180,7 @@ function documentReady(selectedDateStr) {
     });
 
   let createHabitForm = document.getElementById('createHabitForm');
-  createHabitForm.addEventListener('submit', function (event) {
-    event.preventDefault();
-    let body = {
-      name: String(createHabitForm.name.value),
-      amount: Number(createHabitForm.amount.value)
-    };
-    httpPromise('habit', 'PUT', 'application/json', body)
-      .then(function (result) {
-        createHabitForm.style.display = 'none';
-        reloadPage();
-      }).catch(function (err) {
-        console.log(err);
-      });
-  });
+  createHabitForm.addEventListener('submit', createHabitCallback);
 
   document.getElementById('changeBalance').addEventListener('click',
     function(event) {
@@ -177,13 +191,13 @@ function documentReady(selectedDateStr) {
   let balanceForm = document.getElementById('balanceForm');
   balanceForm.addEventListener('submit', function(event) {
     event.preventDefault();
-    let body = { changeAmt: Number(balanceForm.delta.value) };
+    let body = { amount: Number(balanceForm.delta.value) };
     httpPromise('change-balance', 'POST', 'application/json', body)
       .then(function (result) {
         balanceForm.style.display = 'none';
         return balancePromise();
       }).then(function (result) {
-        document.getElementById('balance').textContent = result.balance.toFixed(2);
+        document.getElementById('balance').textContent = result.balance;
       }).catch(function (err) {
         console.log(err);
         reloadPage();
@@ -191,128 +205,12 @@ function documentReady(selectedDateStr) {
   });
 
   let editHabitForms = document.getElementsByClassName('editHabitForm');
-  for (let i = 0; i < editHabitForms.length; i++) {
-    editHabitForms[i].addEventListener('submit', function (event) {
-      let form = event.currentTarget;
-      let div = form.parentNode;
-      event.preventDefault();
-      let body = {
-        name: String(form.name.value),
-        amount: Number(form.amount.value),
-        rev: String(div.dataset.rev)
-      };
-      httpPromise('edit-habit/' + div.dataset.id, 'POST', 'application/json', body)
-        .then(function (result) {
-          form.style.display = 'none';
-          result = JSON.parse(result);
-          refreshHabit(div, habitFromObject(result), result._rev);
-        }).catch(function (err) {
-          console.log(err);
-          reloadPage();
-        });
-    });
-  }
+  for (let i = 0; i < editHabitForms.length; i++)
+    editHabitForms[i].addEventListener('submit', editHabitCallback);
 
-  function refreshHabit(div, habit, rev) {
-    div.dataset.rev = rev;
-
-    div.querySelector('.nameLabel').textContent = habit.name;
-    div.querySelector('.amountLabel').textContent = habit.amount;
-
-    let form = div.querySelector('.editHabitForm');
-    form.name.value = habit.name;
-    form.amount.value = habit.amount;
-
-    let cbox = div.querySelector('.completeHabit');
-    if (habit.isComplete(selectedDateStr))
-      check(cbox);
-    else
-      uncheck(cbox);
-  }
-
-  let deleteHabitButtons = document.getElementsByClassName('deleteHabit');
-  for (let i = 0; i < deleteHabitButtons.length; i++) {
-    deleteHabitButtons[i].addEventListener('click', function (event) {
-      let button = event.currentTarget;
-      let div = button.parentNode;
-      if (confirm("Are you sure you want to delete the habit?")) {
-        httpPromise('delete-habit/' + div.dataset.id, 'DELETE', 'text/plain', {}).then(
-          function(result) {
-            reloadPage();
-          }).catch(function (err) {
-            console.log(err);
-            reloadPage();
-          });
-      }
-    });
-  }
-
-  /* Helper functions for dealing with checkboxes */
-  function uncheck(checkbox) {
-    checkbox.removeAttribute('checked');
-  }
-
-  function check(checkbox) {
-    checkbox.setAttribute('checked', '');
-  }
-
-  function isChecked(checkbox) {
-    return checkbox.hasAttribute('checked');
-  }
-
-  function toggleCheckbox(checkbox) {
-    if (isChecked(checkbox))
-      uncheck(checkbox);
-    else
-      check(checkbox);
-  }
-
-  let checkboxes = document.getElementsByClassName('completeHabit');
-  for (let i = 0; i < checkboxes.length; i++) {
-    checkboxes[i].addEventListener("click", function(event) {
-      let cbox = event.currentTarget;
-      let div = cbox.parentNode;
-      console.log(isChecked(cbox));
-      toggleCheckbox(cbox);
-      console.log(isChecked(cbox));
-
-      let body = {
-        id: div.dataset.id,
-        rev: div.dataset.rev,
-        set: isChecked(cbox),
-        date: selectedDateStr
-      };
-
-      /* Disable the checkbox once the habit is being changed */
-      cbox.disabled = true;
-
-      httpPromise('complete-habit', 'POST', 'application/json', body)
-        .then(function (result) {
-          /* (Un)completion successful! The current state of the checkbox
-           * reflects the truth of what is in the database */
-          result = JSON.parse(result);
-          document.getElementById('balance').textContent = result.balance.toFixed(2);
-          refreshHabit(div, habitFromObject(result.habit), result.habit._rev);
-          cbox.disabled = false;
-        }).catch(function (err) {
-          /* Set the checkbox to be the opposite of what it has now, the habit's
-           * completion was not toggled -- change the checkbox back */
-          console.log('Error occurred when trying to complete the habit');
-          console.log(err);
-          reloadPage();
-        });
-    });
-  }
-
-  function refreshExpense(div, expense, rev) {
-    div.dataset.rev = rev;
-
-    div.querySelector('.nameLabel').textContent = expense.name;
-    div.querySelector('.amountLabel').textContent = expense.amount;
-
-    let cbox = div.querySelector('.chargeExpense');
-    if (expense.charged()) check(cbox);
-    else uncheck(cbox);
+  let habitCheckboxes = document.getElementsByClassName('completeHabit');
+  for (let i = 0; i < habitCheckboxes.length; i++) {
+    habitCheckboxes[i].addEventListener("click", completeHabitCallback);
   }
 
   document.getElementById('createExpense').addEventListener('click',
@@ -322,50 +220,10 @@ function documentReady(selectedDateStr) {
     });
 
   let createExpenseForm = document.getElementById('createExpenseForm');
-  createExpenseForm.addEventListener('submit', function (event) {
-    event.preventDefault();
-    let body = {
-      name: String(createExpenseForm.name.value),
-      amount: Number(createExpenseForm.amount.value)
-    };
-    httpPromise('expense', 'PUT', 'application/json', body)
-      .then(function (result) {
-        createExpenseForm.style.display = 'none';
-        reloadPage();
-      }).catch(function (err) {
-        console.log(err);
-      });
-  });
+  createExpenseForm.addEventListener('submit', createExpenseCallback);
 
   let expCheckboxes = document.getElementsByClassName('chargeExpense');
   for (let i = 0; i < expCheckboxes.length; i++) {
-    expCheckboxes[i].addEventListener("click", function(event) {
-      let cbox = event.currentTarget;
-      let div = cbox.parentNode;
-      toggleCheckbox(cbox);
-
-
-      let body = { id: div.dataset.id, rev: div.dataset.rev };
-      if (isChecked(cbox)) body.date = selectedDateStr;
-
-      /* Disable the checkbox once the habit is being changed */
-      cbox.disabled = true;
-
-      httpPromise('charge-expense', 'POST', 'application/json', body)
-        .then(function (result) {
-          /* (Un)completion successful! The current state of the checkbox
-           * reflects the truth of what is in the database */
-          result = JSON.parse(result);
-          document.getElementById('balance').textContent = result.balance.toFixed(2);
-          refreshExpense(div, expenseFromObject(result.expense), result.expense._rev);
-          cbox.disabled = false;
-        }).catch(function (err) {
-          /* Set the checkbox to be the opposite of what it has now, the habit's
-           * completion was not toggled -- change the checkbox back */
-          console.log('Error occurred when trying to complete the habit');
-          console.log(err);
-          reloadPage();
-        });
-    });
+    expCheckboxes[i].addEventListener("click", chargeExpenseCallback);
   }
 }
