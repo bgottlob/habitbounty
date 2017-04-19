@@ -91,12 +91,8 @@ function loadPage() {
   let today = new Date();
   /* Work with local date without time */
   today.setHours(0,0,0,0);
-  if (!getDate()) {
+  if (!getDate())
     setDate(today.toISOString().split('T')[0]);
-    console.log('No date, setting it to ' + getDate());
-  } else {
-    console.log('The date is already set to ' + getDate());
-  }
 
   /* Fire off promises to the server to get the page, habit form, and expense
    * form templates along with habit, balance, and expense info */
