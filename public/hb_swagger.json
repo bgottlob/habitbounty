@@ -190,7 +190,8 @@
           {
             "name": "dateCharged",
             "in": "body",
-            "description": "The date of the expense to be charged. If this parameter is not provided, the expense will be uncharged",
+            "required": true,
+            "description": "The date of the expense to be charged. If this parameter is null, the expense will be uncharged. If it is a date string, it will be charged.",
             "type": "string",
             "format": "date"
           }

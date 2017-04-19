@@ -8,16 +8,80 @@ let url, dbName;
 if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';
 if (!(dbName = process.env.HB_DB_NAME)) dbName = 'habitbounty';
 
+loader.createDB = function() {
+  return promisify(nano.db.list).then(function (dbList) {
+    if (dbList.indexOf(dbName) === -1) {
+      console.log(dbName + " does not exist, creating it now");
+      return promisify(nano.db.create, [dbName]).then(function(result) {
+        console.log("Created an empty database called " + dbName);
+        db = nano.db.use(dbName);
+        console.log("Populating the new database with the bare minimum needed" +
+          " to run HabitBounty");
+        return Promise.all([
+          loader.createBalance(new Balance(0)), loader.pushDesignDoc()
+        ]).then(function (res) {
+          console.log('All needed documents created!');
+        }).catch(function (err) {
+          console.log('Could not create all needed documents');
+          console.log(err);
+        });
+      }).catch(function(err) {
+        console.log('The database ' + dbName + ' could not be created');
+        console.log(err.reason);
+      });
+    } else {
+      console.log(dbName + ' already exists, no need to create it');
+    }
+  });
+}
+
 let nano = require('nano')(url);
-let db = nano.db.use(dbName);
+let db = null;
+authenticate().then((authedNano) => {
+  nano = authedNano;
+}).then((result) => {
+  db = nano.db.use(dbName);
+}).catch((err) => {
+  console.log(err);
+});
+
+function authenticate() {
+  return new Promise(function (resolve, reject) {
+    nano.auth(process.env.COUCH_USER, process.env.COUCH_PASS,
+      function (err, body, headers) {
+        if (err) reject(err);
+        else {
+          if (headers && headers['set-cookie']) {
+            let authNano = require('nano')({
+              url: url,
+              cookie: headers['set-cookie']
+            });
+            resolve(authNano);
+          }
+          reject('Could not set cookie!');
+        }
+      }
+    );
+  });
+}
 
 function promisify(dbCall, args) {
+  if (!args) args = [];
   return new Promise(function (resolve, reject) {
     dbCall.apply(null, args.concat(function (err, body) {
       if (err) reject(err);
       else resolve(body);
     }));
   });
+}
+
+
+loader.useDB = function(name) {
+  console.log('Switching db from ' + dbName + ' to ' + name);
+  dbName = name;
+  console.log(dbName);
+  db = nano.db.use(dbName);
+  console.log(db);
 }
 
 /* TODO: DRY out these create functions */
@@ -56,9 +120,14 @@ loader.createBalance = function(balance) {
       param: balance,
       message: 'The parameter is not an instance of the Balance prototype'
     });
-  }
-  else {
-    return promisify(db.insert, [balance.toDoc()]);
+  } else {
+    loader.getDoc('balance').then((doc) => {
+      return Promise.resolve('A balance doc exists already, the requested' +
+        'balance doc is not being created');
+    }).catch((err) => {
+      console.log('A balance doc does not exist yet, it is being created now');
+      return promisify(db.insert, [balance.toDoc()]);
+    });
   }
 };
 
@@ -74,8 +143,9 @@ loader.getDoc = function(docId) {
 
 loader.getHabit = function(id) {
   return promisify(db.viewWithList, ['queries', 'all_habits', 'stringify_dates',
-    {keys: [id]}]).then(function (result) {
-      return Promise.resolve(result[0]);
+    {key: id}]).then(function (result) {
+      if (result[0]) return Promise.resolve(result[0]);
+      else return Promise.reject('habit not found');
     });
 }
 
@@ -88,6 +158,10 @@ loader.getExpense = function(id) {
 
 loader.allHabits = function() {
   return promisify(db.viewWithList,['queries', 'all_habits', 'stringify_dates']);
+};
+
+loader.activeHabits = function() {
+  return promisify(db.viewWithList,['queries', 'active_habits', 'stringify_dates']);
 };
 
 loader.allExpenses = function() {
@@ -103,9 +177,19 @@ loader.balance = function () {
 };
 
 const mapAllHabits = function(doc) {
-  if (!doc.inactive && doc.type === 'habit') {
+  if (doc.type === 'habit') {
     emit(doc._id,
-      { name: doc.name, amount: doc.amount, log: doc.log, rev: doc._rev }
+      { name: doc.name, amount: doc.amount, log: doc.log, rev: doc._rev,
+        inactive: doc.inactive }
+    );
+  }
+};
+
+const mapActiveHabits = function(doc) {
+  if (doc.type === 'habit' && !doc.inactive) {
+    emit(doc._id,
+      { name: doc.name, amount: doc.amount, log: doc.log, rev: doc._rev,
+        inactive: doc.inactive }
     );
   }
 };
@@ -202,6 +286,9 @@ const validation = function (newDoc, oldDoc, userCtx) {
       assert(typeof(values[i]) !== 'undefined', msg);
   }
 
+  assert(typeof(newDoc.id) === 'undefined' && typeof(newDoc.rev) === 'undefined',
+    'no docs should have attribubtes named `id` or `rev`, use `_id` and `_rev`');
+
   if (newDoc.type === 'habit') {
     existAssert([newDoc.name, newDoc.amount],
       'every habit must have a name and an amount');
@@ -242,6 +329,9 @@ let designDoc = {
     all_expenses: {
       map: mapAllExpenses.toString()
     },
+    active_habits: {
+      map: mapActiveHabits.toString()
+    },
     balance: {
       map: mapBalance.toString(),
       reduce: '_sum'
@@ -253,48 +343,32 @@ let designDoc = {
   validate_doc_update: validation.toString()
 };
 
-function authenticate() {
-  return new Promise(function (resolve, reject) {
-    nano.auth(process.env.COUCH_USER, process.env.COUCH_PASS,
-      function (err, body, headers) {
-        if (err) reject(err);
-        else {
-          if (headers && headers['set-cookie']) {
-            let authNano = require('nano')({
-              url: url,
-              cookie: headers['set-cookie']
-            });
-            resolve(authNano.db.use(dbName));
-          }
-          reject('Could not set cookie!');
-        }
-      }
-    );
+
+loader.pushDesignDoc = function() {
+  return promisify(db.get, [designDocId]).then(function (doc) {
+    /* Design doc exists, get the revision number and push the updated doc */
+    designDoc._rev = doc._rev;
+    return promisify(db.insert, [designDoc]);
+  }).then(function (result) {
+    console.log('The design doc ' + '"' + designDocId + '" has been updated!');
+  }).catch(function (err) {
+    if (err.error === 'not_found') {
+      console.log('Design doc not found, attempting to push it for the first time');
+      return promisify(db.insert, [designDoc]).then(function (result) {
+        console.log(result);
+        console.log('The design doc ' + '"' + designDocId + '" has been created!');
+      }).catch(function (err) {
+        console.log('Could not create design doc, error:\n' + err);
+      });
+    } else {
+      console.log(err);
+    }
   });
 }
 
-loader.pushDesignDoc = function() {
-  return authenticate().then(function (authdb) {
-    console.log(designDocId);
-    return promisify(authdb.get, [designDocId]).then(function (doc) {
-      /* Design doc exists, get the revision number and push the updated doc */
-      designDoc._rev = doc._rev;
-      return promisify(authdb.insert, [designDoc]);
-    }).then(function (result) {
-      console.log('The design doc ' + '"' + designDocId + '" has been updated!');
-    }).catch(function (err) {
-      console.log('Error:');
-      console.log(err);
-      console.log('Attempting to push design doc for the first time');
-      return promisify(authdb.insert, [designDoc]);
-    }).then(function (result) {
-      console.log(result);
-      console.log('The design doc ' + '"' + designDocId + '" has been created!');
-    }).catch(function (err) {
-      console.log('Could not create design doc, error:\n' + err);
-    });
-  }).catch(function (err) {
-    console.log('Could not authenticate');
-    console.log(err);
+loader.deleteDB = function (name) {
+  if (!name) name = dbName;
+  return promisify(nano.db.destroy, [name]).then(function(res) {
+    console.log('The database ' + name + ' was deleted!');
   });
 }

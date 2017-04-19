@@ -4,7 +4,7 @@
   "description": "An app that helps you keep up habits by setting aside money rewards",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -18,5 +18,8 @@
     "milligram": "^1.2.0",
     "nano": "^6.2.0",
     "pouchdb": "^6.0.6"
+  },
+  "devDependencies": {
+    "mocha": "^3.2.0"
   }
 }

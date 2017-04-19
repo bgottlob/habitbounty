@@ -1,0 +1,23 @@
+<div class="habit" data-rev="{{rev}}" data-id="{{id}}">
+  <input class="completeHabit" type="checkbox" {{isComplete this}}/>
+  <span class="nameLabel">{{name}}</span>
+  $<span class="amountLabel">{{amount}}</span>
+  <button class="button button-clear editHabit">Edit</button>
+  <!-- TODO: Support the delete button
+  <button style="color:red;" class="button button-clear deleteHabit">
+    Delete
+  </button>
+  -->
+  <!-- TODO: Move style to a CSS file -->
+  <form class="editHabitForm" style="display:none;">
+    <fieldset>
+      <label>Name</label>
+      <input name="name" type="text" value="{{name}}" required>
+      <label>Reward</label>
+      <input name="amount" type="number" min="0.01" step="0.01"
+                                                    value="{{amount}}" required>
+      <button class="button button-outline cancel">Cancel</button>
+      <input class="button" value="Submit" type="Submit">
+    </fieldset>
+  </form>
+</div>
