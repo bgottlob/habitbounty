@@ -296,6 +296,62 @@
         }
       }
     },
+    "/edit-expense": {
+      "post": {
+        "summary": "Edit Expense",
+        "description": "Modifies the information associated with an expense",
+        "tags": ["Expenses"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "body",
+            "required": true,
+            "description": "The ID of the expense to be modified",
+            "type": "string"
+          },
+          {
+            "name": "rev",
+            "in": "body",
+            "required": true,
+            "description": "The revision ID of the expense to be modified",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "body",
+            "description": "The new name of the expense",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "in": "body",
+            "description": "The new amount of the expense",
+            "type": "number",
+            "format": "float"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The expense was edited successfully",
+            "schema": {
+              "description": "The most up to date expense information and balance. Both will change when the complete habit request is processed",
+              "type": "object",
+              "properties": {
+                "expense": {
+                  "description": "The updated expense information",
+                  "$ref": "#/definitions/Expense"
+                },
+                "balance": {
+                  "type": "number",
+                  "format": "float",
+                  "description": "The updated balance"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/expense": {
       "put": {
         "summary": "Create Expense",

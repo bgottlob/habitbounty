@@ -161,6 +161,17 @@ function documentReady() {
     });
   }
 
+  let editExpenseButtons = document.getElementsByClassName('editExpense');
+  for (let i = 0; i < editExpenseButtons.length; i++) {
+    editExpenseButtons[i].addEventListener('click', function (event) {
+      let form = event.currentTarget.parentNode.querySelector('.editExpenseForm');
+      if (form.style.display === '')
+        form.style.display = 'none';
+      else
+        form.style.display = '';
+    });
+  }
+
   let cancelButtons = document.getElementsByClassName('cancel');
   for (let i = 0; i < cancelButtons.length; i++) {
     cancelButtons[i].addEventListener('click', function (event) {
@@ -203,6 +214,10 @@ function documentReady() {
   let editHabitForms = document.getElementsByClassName('editHabitForm');
   for (let i = 0; i < editHabitForms.length; i++)
     editHabitForms[i].addEventListener('submit', editHabitCallback);
+
+  let editExpenseForms = document.getElementsByClassName('editExpenseForm');
+  for (let i = 0; i < editExpenseForms.length; i++)
+    editExpenseForms[i].addEventListener('submit', editExpenseCallback);
 
   let habitCheckboxes = document.getElementsByClassName('completeHabit');
   for (let i = 0; i < habitCheckboxes.length; i++) {

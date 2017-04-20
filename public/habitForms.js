@@ -50,7 +50,7 @@ function editHabitCallback(event) {
       refreshHabit(div, habitFromObject(result), result.rev);
     }).catch(function (err) {
       console.log(err);
-      reloadPage(getHabit());
+      reloadPage();
     });
 }
 

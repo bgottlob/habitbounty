@@ -4,6 +4,10 @@ function refreshExpense(div, expense, rev) {
   div.querySelector('.nameLabel').textContent = expense.name;
   div.querySelector('.amountLabel').textContent = expense.amount;
 
+  let form = div.querySelector('.editExpenseForm');
+  form.name.value = expense.name;
+  form.amount.value = expense.amount;
+
   let cbox = div.querySelector('.chargeExpense');
   if (expense.charged()) check(cbox);
   else uncheck(cbox);
@@ -49,6 +53,28 @@ function chargeExpenseCallback(event) {
       /* Set the checkbox to be the opposite of what it has now, the habit's
        * completion was not toggled -- change the checkbox back */
       console.log('Error occurred when trying to complete the habit');
+      console.log(err);
+      reloadPage();
+    });
+}
+
+function editExpenseCallback(event) {
+  event.preventDefault();
+  let form = event.currentTarget;
+  let div = form.parentNode;
+  let body = {
+    name: String(form.name.value),
+    amount: Number(form.amount.value),
+    rev: div.dataset.rev,
+    id: div.dataset.id
+  };
+  httpPromise('edit-expense', 'POST', 'application/json', body)
+    .then(function (result) {
+      form.style.display = 'none';
+      result = JSON.parse(result);
+      refreshExpense(div, expenseFromObject(result.expense), result.expense.rev);
+      document.getElementById('balance').textContent = result.balance.balance;
+    }).catch(function (err) {
       console.log(err);
       reloadPage();
     });

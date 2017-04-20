@@ -249,6 +249,42 @@ router.add('POST', /^\/edit-habit$/, function (request, response) {
   }
 });
 
+router.add('POST', /^\/edit-expense/, function (request, response) {
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['id', 'rev'], ['name', 'amount'],
+    (b) => {
+      if (typeof(b.name) === 'undefined' && typeof(b.amount) === 'undefined')
+        return 'either name, amount, or both must be provided';
+    }
+  );
+  if (invalidMsg) {
+    respondBadReq(response, invalidMsg);
+  } else {
+    loader.getExpense(body.id).then(function(doc) {
+      let expense = new Expense(doc.name, doc.amount, doc.dateCharged);
+      if (body.name) expense.name = body.name;
+      if (body.amount) expense.amount = body.amount;
+      let newDoc = expense.toDoc();
+      newDoc._id = body.id;
+      newDoc._rev = body.rev;
+      return loader.updateDoc(newDoc);
+    }).then(function (result) {
+      /* This request can change the balance if the expense was completed and
+       * its amount changed */
+      return Promise.all([loader.getExpense(body.id), loader.balance()]);
+    }).then(function (docs) {
+      response.end(JSON.stringify({
+        expense: docs[0],
+        balance: docs[1]
+      }));
+    }).catch(function (err) {
+      console.log(err);
+      response.statusCode = 400;
+      response.end(JSON.stringify(err));
+    });
+  }
+});
+
 router.add('DELETE', /^\/habit$/, function (request, response) {
   const body = request.body;
   const invalidMsg = validateRequest(body, ['id', 'rev']);
