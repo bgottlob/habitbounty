@@ -11,7 +11,7 @@ function templatePromise() {
 }
 
 function habitPromise() {
-  return httpPromise('all-habits', 'GET', 'application/json')
+  return httpPromise('active-habits', 'GET', 'application/json')
     .then(function (result) {
       return Promise.resolve(JSON.parse(result));
     });

@@ -111,6 +111,11 @@ router.add('GET', /^\/active-habits$/, function (request, response) {
   simpleGET(loader.activeHabits(), response);
 });
 
+/* Return a list of active habits in JSON for any client to consume */
+router.add('GET', /^\/archived-habits$/, function (request, response) {
+  simpleGET(loader.archivedHabits(), response);
+});
+
 /* Return a list of all expenses in JSON for any client to consume */
 router.add('GET', /^\/all-expenses$/, function (request, response) {
   simpleGET(loader.allExpenses(), response);
@@ -135,16 +140,11 @@ router.add('POST', /^\/complete-habit$/, function (request, response) {
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    loader.getHabit(body.id).then(function (doc) {
-      let habit = new Habit(doc.name, doc.amount, doc.log);
-
+    loader.updateDoc(body.id, body.rev, (origDoc) => {
+      let habit = Habit.fromDoc(origDoc);
       if (body.set) habit.complete(body.date);
       else habit.uncomplete(body.date);
-
-      let newDoc = habit.toDoc();
-      newDoc._id = body.id;
-      newDoc._rev = body.rev;
-      return loader.updateDoc(newDoc);
+      return Object.assign(origDoc, habit.toDoc());
     }).then(function (result) {
       /* Get latest updates to the habit doc and balance */
       return Promise.all([loader.getHabit(body.id), loader.balance()]);
@@ -167,15 +167,11 @@ router.add('POST', /^\/charge-expense$/, function (request, response) {
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    loader.getExpense(body.id).then(function (doc) {
-      let expense = new Expense(doc.name, doc.amount, doc.dateCharged);
+    loader.updateDoc(body.id, body.rev, (origDoc) => {
+      let expense = Expense.fromDoc(origDoc);
       if (body.dateCharged) expense.charge(body.dateCharged);
       else expense.uncharge();
-
-      let newDoc = expense.toDoc();
-      newDoc._id = body.id;
-      newDoc._rev = body.rev;
-      return loader.updateDoc(newDoc);
+      return Object.assign(origDoc, expense.toDoc());
     }).then(function(result) {
       /* Get latest updates */
       return Promise.all([loader.getExpense(body.id), loader.balance()]);
@@ -192,6 +188,7 @@ router.add('POST', /^\/charge-expense$/, function (request, response) {
   }
 });
 
+/* TODO: FIX THIS -- A REV MUST BE USED HERE TO CONTROL CONCURRENCY */
 router.add('POST', /^\/change-balance$/, function (request, response) {
   const body = request.body;
   const invalidMsg = validateRequest(body, ['amount'], null, (b) => {
@@ -229,14 +226,11 @@ router.add('POST', /^\/edit-habit$/, function (request, response) {
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    loader.getHabit(body.id).then(function(doc) {
-      let habit = new Habit(doc.name, doc.amount, doc.log);
+    loader.updateDoc(body.id, body.rev, (origDoc) => {
+      let habit = Habit.fromDoc(origDoc);
       if (body.name) habit.name = body.name;
       if (body.amount) habit.amount = body.amount;
-      let newDoc = habit.toDoc();
-      newDoc._id = body.id;
-      newDoc._rev = body.rev;
-      return loader.updateDoc(newDoc);
+      return Object.assign(origDoc, habit.toDoc());
     }).then(function (result) {
       return loader.getHabit(body.id);
     }).then(function (doc) {
@@ -260,14 +254,11 @@ router.add('POST', /^\/edit-expense/, function (request, response) {
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    loader.getExpense(body.id).then(function(doc) {
-      let expense = new Expense(doc.name, doc.amount, doc.dateCharged);
+    loader.updateDoc(body.id, body.rev, (origDoc) => {
+      let expense = Expense.fromDoc(origDoc)
       if (body.name) expense.name = body.name;
       if (body.amount) expense.amount = body.amount;
-      let newDoc = expense.toDoc();
-      newDoc._id = body.id;
-      newDoc._rev = body.rev;
-      return loader.updateDoc(newDoc);
+      return Object.assign(origDoc, expense.toDoc());
     }).then(function (result) {
       /* This request can change the balance if the expense was completed and
        * its amount changed */
@@ -285,19 +276,14 @@ router.add('POST', /^\/edit-expense/, function (request, response) {
   }
 });
 
-router.add('DELETE', /^\/habit$/, function (request, response) {
+router.add('POST', /^\/archive-habit$/, function (request, response) {
   const body = request.body;
-  const invalidMsg = validateRequest(body, ['id', 'rev']);
+  const invalidMsg = validateRequest(body, ['id', 'rev', 'archived']);
   if (invalidMsg) {
     respondBadReq(response, invalidMsg);
   } else {
-    loader.getHabit(docId).then(function (doc) {
-      let habit = new Habit(doc.name, doc.amount, doc.log);
-      let newDoc = habit.toDoc();
-      newDoc._id = body.id;
-      newDoc._rev = body.rev;
-      newDoc.inactive = true;
-      return loader.updateDoc(newDoc);
+    loader.updateDoc(body.id, body.rev, (origDoc) => {
+      return Object.assign(origDoc, { archived: body.archived });
     }).then(function (result) {
       return loader.getHabit(body.id);
     }).then(function (result) {

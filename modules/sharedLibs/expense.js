@@ -23,6 +23,12 @@ Expense.prototype.toDoc = function() {
   return doc;
 };
 
+Expense.fromDoc = function(doc) {
+  let dateCharged = doc.dateCharged;
+  if (dateCharged) dateCharged = doc.dateCharged.dateToStr();
+  return new Expense(doc.name, doc.amount, dateCharged);
+}
+
 Expense.prototype.charge = function(dateStr) {
   this.dateCharged = dateStr;
 };
