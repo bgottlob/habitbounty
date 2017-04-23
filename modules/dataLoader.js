@@ -131,19 +131,31 @@ loader.createBalance = function(balance) {
   }
 };
 
-/* Assumes the doc object contains the _id and _rev, or else couch will give
- * an error */
-loader.updateDoc = function (doc) {
-  return promisify(db.insert, [doc]);
-};
-
 loader.getDoc = function(docId) {
   return promisify(db.get, [docId]);
 };
 
+/* Give updateDoc a function that returns the changes to a doc, given the
+ * original doc's contents (excludes its id and rev). The newDocFun takes
+ * a single element that is the old document and should return the updated
+ * doc */
+loader.updateDoc = function (id, rev, newDocFun) {
+  return this.getDoc(id).then((origDoc) => {
+    console.log(origDoc);
+    delete origDoc._id;
+    delete origDoc._rev;
+    console.log(origDoc);
+    let newDoc = newDocFun(origDoc);
+    console.log(newDoc);
+    newDoc._id = id;
+    newDoc._rev = rev;
+    return promisify(db.insert, [newDoc]);
+  });
+};
+
 loader.getHabit = function(id) {
   return promisify(db.viewWithList, ['queries', 'all_habits', 'stringify_dates',
-    {key: id}]).then(function (result) {
+    { key: id, include_docs: true }]).then(function (result) {
       if (result[0]) return Promise.resolve(result[0]);
       else return Promise.reject('habit not found');
     });
@@ -151,21 +163,29 @@ loader.getHabit = function(id) {
 
 loader.getExpense = function(id) {
   return promisify(db.viewWithList, ['queries', 'all_expenses', 'stringify_dates',
-    {keys: [id]}]).then(function (result) {
+    { key: id, include_docs: true }]).then(function (result) {
       return Promise.resolve(result[0]);
     });
 }
 
 loader.allHabits = function() {
-  return promisify(db.viewWithList,['queries', 'all_habits', 'stringify_dates']);
+  return promisify(db.viewWithList,['queries', 'all_habits',
+    'stringify_dates', { include_docs: true }]);
 };
 
-loader.activeHabits = function() {
-  return promisify(db.viewWithList,['queries', 'active_habits', 'stringify_dates']);
+function habitsByArchived(archived) {
+  return function() {
+    return promisify(db.viewWithList,['queries', 'habits_by_archived',
+      'stringify_dates', { key: archived, include_docs: true }]);
+  }
 };
+
+loader.archivedHabits = habitsByArchived(true);
+loader.activeHabits = habitsByArchived(false);
 
 loader.allExpenses = function() {
-  return promisify(db.viewWithList,['queries', 'all_expenses', 'stringify_dates']);
+  return promisify(db.viewWithList,['queries', 'all_expenses',
+    'stringify_dates', { include_docs: true }]);
 };
 
 loader.balance = function () {
@@ -177,33 +197,18 @@ loader.balance = function () {
 };
 
 const mapAllHabits = function(doc) {
-  if (doc.type === 'habit') {
-    emit(doc._id,
-      { name: doc.name, amount: doc.amount, log: doc.log, rev: doc._rev,
-        inactive: doc.inactive }
-    );
-  }
+  if (doc.type === 'habit')
+    emit(doc._id, null);
 };
 
-const mapActiveHabits = function(doc) {
-  if (doc.type === 'habit' && !doc.inactive) {
-    emit(doc._id,
-      { name: doc.name, amount: doc.amount, log: doc.log, rev: doc._rev,
-        inactive: doc.inactive }
-    );
-  }
+const mapHabitsByArchived = function(doc) {
+  if (doc.type === 'habit')
+    emit(!!doc.archived, null);
 };
 
 const mapAllExpenses = function(doc) {
-  if (doc.type === 'expense') {
-    emit(doc._id,
-      { name: doc.name,
-        amount: doc.amount,
-        dateCharged: doc.dateCharged,
-        rev: doc._rev
-      }
-    );
-  }
+  if (doc.type === 'expense')
+    emit(doc._id, null);
 };
 
 const mapBalance = function(doc) {
@@ -231,15 +236,26 @@ const stringifyDates = function (head, req) {
     }
   });
   while (row = getRow()) {
-    row.value.id = row.id;
-    if (row.value.log) {
-      for (var i = 0; i < row.value.log.length; i++)
-        row.value.log[i].date = toStr(row.value.log[i].date);
+    var sendValue = {};
+    sendValue.id = row.id;
+    sendValue.rev = row.doc._rev;
+    if (row.doc.type === 'habit') {
+      sendValue.name = row.doc.name;
+      sendValue.amount = row.doc.amount;
+      if (row.doc.log) {
+        var log = row.doc.log;
+        for (var i = 0; i < log.length; i++)
+          log[i].date = toStr(log[i].date);
+        sendValue.log = log;
+      }
+    } else if (row.doc.type === 'expense') {
+      sendValue.name = row.doc.name;
+      sendValue.amount = row.doc.amount;
+      if (row.doc.dateCharged) {
+        sendValue.dateCharged = toStr(row.doc.dateCharged);
+      }
     }
-    if (row.value.dateCharged) {
-      row.value.dateCharged = toStr(row.value.dateCharged);
-    }
-    final.push(row.value);
+    final.push(sendValue);
   }
   send(toJSON(final));
   /* TODO: THROW ERROR IF FINAL IS EMPTY */
@@ -290,17 +306,16 @@ const validation = function (newDoc, oldDoc, userCtx) {
     'no docs should have attribubtes named `id` or `rev`, use `_id` and `_rev`');
 
   if (newDoc.type === 'habit') {
-    existAssert([newDoc.name, newDoc.amount],
-      'every habit must have a name and an amount');
+    existAssert([newDoc.name, newDoc.amount, newDoc.log],
+      'every habit must have a name, amount, and log');
     nameAssert(newDoc.name);
     amountAssert(newDoc.amount);
-    if (newDoc.log) {
-      for (var i = 0; i < newDoc.log.length; i++) {
-        existAssert([newDoc.log[i].amount, newDoc.log[i].date],
-          'every log entry must have an amount and date array');
-        amountAssert(newDoc.log[i].amount);
-        dateAssert(newDoc.log[i].date);
-      }
+    assert(Array.isArray(newDoc.log), 'the log of the habit must be an Array');
+    for (var i = 0; i < newDoc.log.length; i++) {
+      existAssert([newDoc.log[i].amount, newDoc.log[i].date],
+        'every log entry must have an amount and date array');
+      amountAssert(newDoc.log[i].amount);
+      dateAssert(newDoc.log[i].date);
     }
   } else if (newDoc.type === 'expense') {
     existAssert([newDoc.name, newDoc.amount],
@@ -316,8 +331,17 @@ const validation = function (newDoc, oldDoc, userCtx) {
   } else {
     throw({forbidden: newDoc.type + ' is not a valid doc type'});
   }
-
 };
+
+/*
+function mapHabitByDateCompletion(doc) {
+  if (doc.type === 'habit') {
+    for (let i = 0; i < doc.log.length; i++) {
+      emit(doc.log[i].date.concat
+    }
+  }
+}
+*/
 
 let designDocId = '_design/queries';
 let designDoc = {
@@ -329,8 +353,8 @@ let designDoc = {
     all_expenses: {
       map: mapAllExpenses.toString()
     },
-    active_habits: {
-      map: mapActiveHabits.toString()
+    habits_by_archived: {
+      map: mapHabitsByArchived.toString()
     },
     balance: {
       map: mapBalance.toString(),
@@ -340,7 +364,7 @@ let designDoc = {
   lists: {
     stringify_dates: stringifyDates.toString()
   },
-  validate_doc_update: validation.toString()
+  validate_doc_update: validation.toString(
 };
 
 

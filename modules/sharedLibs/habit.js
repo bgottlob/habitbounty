@@ -36,7 +36,8 @@ Habit.prototype.uncomplete = function(dateStr) {
   });
 };
 
-/* Returns an object that is ready to be placed into the db as a document */
+/* Returns an object that is ready to be placed into the db as a document,
+ * or used as a delta for updating an existing document */
 Habit.prototype.toDoc = function() {
   let res = {
     name: this.name,
@@ -51,6 +52,18 @@ Habit.prototype.toDoc = function() {
   });
   return res;
 };
+
+Habit.fromDoc = function(doc) {
+  if (doc.log) {
+    doc.log = doc.log.map((curr) => {
+      return {
+        amount: curr.amount,
+        date: curr.date.dateToStr()
+      }
+    });
+  }
+  return new Habit(doc.name, doc.amount, doc.log);
+}
 
 /* Support importing into browser or node */
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')

@@ -11,7 +11,7 @@ function templatePromise() {
 }
 
 function habitPromise() {
-  return httpPromise('all-habits', 'GET', 'application/json')
+  return httpPromise('active-habits', 'GET', 'application/json')
     .then(function (result) {
       return Promise.resolve(JSON.parse(result));
     });
@@ -214,6 +214,10 @@ function documentReady() {
   let editHabitForms = document.getElementsByClassName('editHabitForm');
   for (let i = 0; i < editHabitForms.length; i++)
     editHabitForms[i].addEventListener('submit', editHabitCallback);
+
+  let archiveHabitButtons = document.getElementsByClassName('archiveHabit');
+  for (let i = 0; i < archiveHabitButtons.length; i++)
+    archiveHabitButtons[i].addEventListener('click', archiveHabitCallback);
 
   let editExpenseForms = document.getElementsByClassName('editExpenseForm');
   for (let i = 0; i < editExpenseForms.length; i++)

@@ -85,3 +85,24 @@ function completeHabitCallback(event) {
       reloadPage();
     });
 }
+
+function archiveHabitCallback(event) {
+  event.preventDefault();
+  let form = event.currentTarget;
+  if (confirm('Are you sure you want to archive this habit? It will be ' +
+    'removed from your daily routine.')) {
+      let div = form.parentNode;
+      let body = {
+        id: div.dataset.id,
+        rev: String(div.dataset.rev),
+        archived: true
+      };
+      httpPromise('archive-habit', 'POST', 'application/json', body)
+        .then(function (result) {
+          reloadPage();
+        }).catch(function (err) {
+          console.log(err);
+          reloadPage();
+        });
+  }
+}
