@@ -306,17 +306,16 @@ const validation = function (newDoc, oldDoc, userCtx) {
     'no docs should have attribubtes named `id` or `rev`, use `_id` and `_rev`');
 
   if (newDoc.type === 'habit') {
-    existAssert([newDoc.name, newDoc.amount],
-      'every habit must have a name and an amount');
+    existAssert([newDoc.name, newDoc.amount, newDoc.log],
+      'every habit must have a name, amount, and log');
     nameAssert(newDoc.name);
     amountAssert(newDoc.amount);
-    if (newDoc.log) {
-      for (var i = 0; i < newDoc.log.length; i++) {
-        existAssert([newDoc.log[i].amount, newDoc.log[i].date],
-          'every log entry must have an amount and date array');
-        amountAssert(newDoc.log[i].amount);
-        dateAssert(newDoc.log[i].date);
-      }
+    assert(Array.isArray(newDoc.log), 'the log of the habit must be an Array');
+    for (var i = 0; i < newDoc.log.length; i++) {
+      existAssert([newDoc.log[i].amount, newDoc.log[i].date],
+        'every log entry must have an amount and date array');
+      amountAssert(newDoc.log[i].amount);
+      dateAssert(newDoc.log[i].date);
     }
   } else if (newDoc.type === 'expense') {
     existAssert([newDoc.name, newDoc.amount],
@@ -332,8 +331,17 @@ const validation = function (newDoc, oldDoc, userCtx) {
   } else {
     throw({forbidden: newDoc.type + ' is not a valid doc type'});
   }
-
 };
+
+/*
+function mapHabitByDateCompletion(doc) {
+  if (doc.type === 'habit') {
+    for (let i = 0; i < doc.log.length; i++) {
+      emit(doc.log[i].date.concat
+    }
+  }
+}
+*/
 
 let designDocId = '_design/queries';
 let designDoc = {
@@ -356,7 +364,7 @@ let designDoc = {
   lists: {
     stringify_dates: stringifyDates.toString()
   },
-  validate_doc_update: validation.toString()
+  validate_doc_update: validation.toString(
 };
 
 
