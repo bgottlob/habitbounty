@@ -333,15 +333,11 @@ const validation = function (newDoc, oldDoc, userCtx) {
   }
 };
 
-/*
-function mapHabitByDateCompletion(doc) {
-  if (doc.type === 'habit') {
-    for (let i = 0; i < doc.log.length; i++) {
-      emit(doc.log[i].date.concat
-    }
-  }
+function mapHabitsByCompletionDate (doc) {
+  if (doc.type === 'habit')
+    for (let i = 0; i < doc.log.length; i++)
+      emit(doc.log[i].date.concat, null)
 }
-*/
 
 let designDocId = '_design/queries';
 let designDoc = {
@@ -356,6 +352,9 @@ let designDoc = {
     habits_by_archived: {
       map: mapHabitsByArchived.toString()
     },
+    habits_by_completion_date: {
+      map: mapHabitsByCompletionDate.toString()
+    },
     balance: {
       map: mapBalance.toString(),
       reduce: '_sum'
@@ -364,7 +363,7 @@ let designDoc = {
   lists: {
     stringify_dates: stringifyDates.toString()
   },
-  validate_doc_update: validation.toString(
+  validate_doc_update: validation.toString()
 };
 
 
@@ -388,11 +387,11 @@ loader.pushDesignDoc = function() {
       console.log(err);
     }
   });
-}
+};
 
 loader.deleteDB = function (name) {
   if (!name) name = dbName;
   return promisify(nano.db.destroy, [name]).then(function(res) {
     console.log('The database ' + name + ' was deleted!');
   });
-}
+};
