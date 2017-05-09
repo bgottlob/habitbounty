@@ -20,12 +20,12 @@
   <div class="row">
     <div class="column">
       {{#if habits}}
-        <h5>Your habits:</h5>
+        <h5>Your habits</h5>
+        <h6><span id="habitsLeft">{{habitsLeft}}</span> left for the day</h6>
         {{#each habits}}
           {{> habitForm}}
         {{/each}}
       {{/if}}
-
 
       <button class="button" id="createHabit">Create Habit</button>
       <form style="display:none;" id="createHabitForm">

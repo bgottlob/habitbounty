@@ -11,7 +11,7 @@ function templatePromise() {
 }
 
 function habitPromise() {
-  return httpPromise('all-habits', 'GET', 'application/json')
+  return httpPromise('active-habits', 'GET', 'application/json')
     .then(function (result) {
       return Promise.resolve(JSON.parse(result));
     });
@@ -29,6 +29,11 @@ function expensePromise() {
     .then(function (result) {
       return Promise.resolve(JSON.parse(result));
     });
+}
+
+function habitsLeftPromise(dateStr) {
+  return httpPromise('habits-left/' + dateStr, 'GET', 'application/json')
+    .then((result) => {return Promise.resolve(JSON.parse(result));});
 }
 /****** End of setup for the three requests needed to initialize page ********/
 
@@ -99,7 +104,8 @@ function loadPage() {
   let promises = [
     templatePromise(), habitPromise(), balancePromise(), expensePromise(),
     httpPromise('habitForm.handlebars', 'GET', 'text/plain'),
-    httpPromise('expenseForm.handlebars', 'GET', 'text/plain')
+    httpPromise('expenseForm.handlebars', 'GET', 'text/plain'),
+    habitsLeftPromise(getDate())
   ];
 
   Promise.all(promises).then(function (values) {
@@ -109,7 +115,8 @@ function loadPage() {
       habits: values[1],
       balance: values[2].balance,
       expenses: values[3],
-      date: getDate()
+      date: getDate(),
+      habitsLeft: values[6]
     };
     Handlebars.registerPartial('habitForm', values[4]);
     Handlebars.registerPartial('expenseForm', values[5]);
@@ -214,6 +221,10 @@ function documentReady() {
   let editHabitForms = document.getElementsByClassName('editHabitForm');
   for (let i = 0; i < editHabitForms.length; i++)
     editHabitForms[i].addEventListener('submit', editHabitCallback);
+
+  let archiveHabitButtons = document.getElementsByClassName('archiveHabit');
+  for (let i = 0; i < archiveHabitButtons.length; i++)
+    archiveHabitButtons[i].addEventListener('click', archiveHabitCallback);
 
   let editExpenseForms = document.getElementsByClassName('editExpenseForm');
   for (let i = 0; i < editExpenseForms.length; i++)

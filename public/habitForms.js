@@ -70,18 +70,42 @@ function completeHabitCallback(event) {
   cbox.disabled = true;
 
   httpPromise('complete-habit', 'POST', 'application/json', body)
-    .then(function (result) {
+    .then((result) => {
       /* (Un)completion successful! The current state of the checkbox
        * reflects the truth of what is in the database */
       result = JSON.parse(result);
       document.getElementById('balance').textContent = result.balance;
       refreshHabit(div, habitFromObject(result.habit), result.habit.rev);
       cbox.disabled = false;
-    }).catch(function (err) {
+      return habitsLeftPromise(getDate());
+    }).then((result) => {
+      document.getElementById('habitsLeft').textContent = result;
+    }).catch((err) => {
       /* Set the checkbox to be the opposite of what it has now, the habit's
        * completion was not toggled -- change the checkbox back */
       console.log('Error occurred when trying to complete the habit');
       console.log(err);
       reloadPage();
     });
+}
+
+function archiveHabitCallback(event) {
+  event.preventDefault();
+  let form = event.currentTarget;
+  if (confirm('Are you sure you want to archive this habit? It will be ' +
+    'removed from your daily routine.')) {
+      let div = form.parentNode;
+      let body = {
+        id: div.dataset.id,
+        rev: String(div.dataset.rev),
+        archived: true
+      };
+      httpPromise('archive-habit', 'POST', 'application/json', body)
+        .then(function (result) {
+          reloadPage();
+        }).catch(function (err) {
+          console.log(err);
+          reloadPage();
+        });
+  }
 }
