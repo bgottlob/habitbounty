@@ -121,6 +121,13 @@ router.add('GET', /^\/all-expenses$/, function (request, response) {
   simpleGET(loader.allExpenses(), response);
 });
 
+router.add('GET', /^\/habits-left\/(\d{4}-\d{2}-\d{2})$/,
+  (request, response, dateStr) => {
+    /* TODO: Verify the date string */
+    simpleGET(loader.habitsLeft(dateStr), response);
+  }
+);
+
 /* Get the info for a single habit given the habit's document id */
 router.add('GET', /^\/habit\/(\w+)$/, function (request, response, id) {
   if (!id) respondBadReq(response, 'request must contain habit ID in path');

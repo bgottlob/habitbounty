@@ -176,7 +176,7 @@ loader.allHabits = function() {
 function habitsByArchived(archived) {
   return function() {
     return promisify(db.viewWithList,['queries', 'habits_by_archived',
-      'stringify_dates', { key: archived, include_docs: true }]);
+      'stringify_dates', { reduce: false, key: archived, include_docs: true }]);
   }
 };
 
@@ -187,6 +187,20 @@ loader.allExpenses = function() {
   return promisify(db.viewWithList,['queries', 'all_expenses',
     'stringify_dates', { include_docs: true }]);
 };
+
+loader.habitsLeft = function(dateStr) {
+  activeCount = promisify(db.view, ['queries', 'habits_by_archived',
+    { reduce: true, group: true, key: false }]);
+  completedToday = promisify(db.view, ['queries', 'habits_by_completion_date',
+    { reduce: true, group: true, key: dateStr.dateToArray() }]);
+  return Promise.all([completedToday, activeCount]).then((results) => {
+    let active = results[1].rows[0].value;
+    let completed;
+    if (results[0].rows.length <= 0) completed = 0;
+    else completed = results[0].rows[0].value
+    return active - completed;
+  });
+}
 
 loader.balance = function () {
   return promisify(db.view, ['queries', 'balance']).then(function (result) {
@@ -333,10 +347,10 @@ const validation = function (newDoc, oldDoc, userCtx) {
   }
 };
 
-function mapHabitsByCompletionDate (doc) {
-  if (doc.type === 'habit')
-    for (let i = 0; i < doc.log.length; i++)
-      emit(doc.log[i].date.concat, null)
+const mapHabitsByCompletionDate = function(doc) {
+  if (doc.type === 'habit' && !doc.archived)
+    for (var i = 0; i < doc.log.length; i++)
+      emit(doc.log[i].date, null)
 }
 
 let designDocId = '_design/queries';
@@ -350,10 +364,12 @@ let designDoc = {
       map: mapAllExpenses.toString()
     },
     habits_by_archived: {
-      map: mapHabitsByArchived.toString()
+      map: mapHabitsByArchived.toString(),
+      reduce: '_count'
     },
     habits_by_completion_date: {
-      map: mapHabitsByCompletionDate.toString()
+      map: mapHabitsByCompletionDate.toString(),
+      reduce: '_count'
     },
     balance: {
       map: mapBalance.toString(),

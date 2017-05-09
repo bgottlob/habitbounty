@@ -30,6 +30,11 @@ function expensePromise() {
       return Promise.resolve(JSON.parse(result));
     });
 }
+
+function habitsLeftPromise(dateStr) {
+  return httpPromise('habits-left/' + dateStr, 'GET', 'application/json')
+    .then((result) => {return Promise.resolve(JSON.parse(result));});
+}
 /****** End of setup for the three requests needed to initialize page ********/
 
 /* Checks whether habit is complete; if so, check off its checkbox */
@@ -99,7 +104,8 @@ function loadPage() {
   let promises = [
     templatePromise(), habitPromise(), balancePromise(), expensePromise(),
     httpPromise('habitForm.handlebars', 'GET', 'text/plain'),
-    httpPromise('expenseForm.handlebars', 'GET', 'text/plain')
+    httpPromise('expenseForm.handlebars', 'GET', 'text/plain'),
+    habitsLeftPromise(getDate())
   ];
 
   Promise.all(promises).then(function (values) {
@@ -109,7 +115,8 @@ function loadPage() {
       habits: values[1],
       balance: values[2].balance,
       expenses: values[3],
-      date: getDate()
+      date: getDate(),
+      habitsLeft: values[6]
     };
     Handlebars.registerPartial('habitForm', values[4]);
     Handlebars.registerPartial('expenseForm', values[5]);
