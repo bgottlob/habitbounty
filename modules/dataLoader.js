@@ -3,6 +3,7 @@ let loader = module.exports;
 const Habit = require('./sharedLibs/habit.js');
 const Balance = require('./sharedLibs/balance.js');
 const Expense = require('./sharedLibs/expense.js');
+const Chore = require('./sharedLibs/chore.js');
 
 let url, dbName;
 if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';
@@ -131,6 +132,19 @@ loader.createBalance = function(balance) {
   }
 };
 
+loader.createChore = function(chore) {
+  if (!(chore instanceof Chore)) {
+    return Promise.reject({
+      error: 'bad_data_type',
+      param: chore,
+      message: 'The parameter is not an instance of the Chore prototype'
+    });
+  }
+  else {
+    return promisify(db.insert, [chore.toDoc()]);
+  }
+};
+
 loader.getDoc = function(docId) {
   return promisify(db.get, [docId]);
 };
@@ -141,12 +155,9 @@ loader.getDoc = function(docId) {
  * doc */
 loader.updateDoc = function (id, rev, newDocFun) {
   return this.getDoc(id).then((origDoc) => {
-    console.log(origDoc);
     delete origDoc._id;
     delete origDoc._rev;
-    console.log(origDoc);
     let newDoc = newDocFun(origDoc);
-    console.log(newDoc);
     newDoc._id = id;
     newDoc._rev = rev;
     return promisify(db.insert, [newDoc]);
@@ -161,6 +172,14 @@ loader.getHabit = function(id) {
     });
 }
 
+loader.getChore = function(id) {
+  return promisify(db.viewWithList, ['queries', 'all_chores', 'stringify_dates',
+    { key: id, include_docs: true }]).then(function (result) {
+      if (result[0]) return Promise.resolve(result[0]);
+      else return Promise.reject('chore not found');
+    });
+}
+
 loader.getExpense = function(id) {
   return promisify(db.viewWithList, ['queries', 'all_expenses', 'stringify_dates',
     { key: id, include_docs: true }]).then(function (result) {
@@ -170,6 +189,11 @@ loader.getExpense = function(id) {
 
 loader.allHabits = function() {
   return promisify(db.viewWithList,['queries', 'all_habits',
+    'stringify_dates', { include_docs: true }]);
+};
+
+loader.allChores = function() {
+  return promisify(db.viewWithList,['queries', 'all_chores',
     'stringify_dates', { include_docs: true }]);
 };
 
@@ -220,13 +244,25 @@ const mapHabitsByArchived = function(doc) {
     emit(!!doc.archived, null);
 };
 
+const mapAllChores = function(doc) {
+  if (doc.type === 'chore') {
+    emit(doc._id, null);
+  }
+};
+
+const mapChoresByArchived = function(doc) {
+  if (doc.type === 'chore') {
+    emit(doc._id, null);
+  }
+};
+
 const mapAllExpenses = function(doc) {
   if (doc.type === 'expense')
     emit(doc._id, null);
 };
 
 const mapBalance = function(doc) {
-  if (doc.type === 'habit') {
+  if (doc.type === 'habit' || doc.type === 'chore') {
     for (var i = 0; i < doc.log.length; i++)
       emit(doc._id, doc.log[i].amount);
   } else if (doc.type === 'balance') {
@@ -253,7 +289,7 @@ const stringifyDates = function (head, req) {
     var sendValue = {};
     sendValue.id = row.id;
     sendValue.rev = row.doc._rev;
-    if (row.doc.type === 'habit') {
+    if (row.doc.type === 'habit' || row.doc.type === 'chore') {
       sendValue.name = row.doc.name;
       sendValue.amount = row.doc.amount;
       if (row.doc.log) {
@@ -319,7 +355,7 @@ const validation = function (newDoc, oldDoc, userCtx) {
   assert(typeof(newDoc.id) === 'undefined' && typeof(newDoc.rev) === 'undefined',
     'no docs should have attribubtes named `id` or `rev`, use `_id` and `_rev`');
 
-  if (newDoc.type === 'habit') {
+  if (newDoc.type === 'habit' || newDoc.type === 'chore') {
     existAssert([newDoc.name, newDoc.amount, newDoc.log],
       'every habit must have a name, amount, and log');
     nameAssert(newDoc.name);
@@ -362,6 +398,9 @@ let designDoc = {
     },
     all_expenses: {
       map: mapAllExpenses.toString()
+    },
+    all_chores: {
+      map: mapAllChores.toString()
     },
     habits_by_archived: {
       map: mapHabitsByArchived.toString(),
