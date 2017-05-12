@@ -17,6 +17,13 @@ function habitPromise() {
     });
 }
 
+function chorePromise() {
+  return httpPromise('all-chores', 'GET', 'application/json')
+    .then(function (result) {
+      return Promise.resolve(JSON.parse(result));
+    });
+}
+
 function balancePromise() {
   return httpPromise('balance', 'GET', 'application/json')
     .then(function (result) {
@@ -105,7 +112,8 @@ function loadPage() {
     templatePromise(), habitPromise(), balancePromise(), expensePromise(),
     httpPromise('habitForm.handlebars', 'GET', 'text/plain'),
     httpPromise('expenseForm.handlebars', 'GET', 'text/plain'),
-    habitsLeftPromise(getDate())
+    habitsLeftPromise(getDate()), chorePromise(),
+    httpPromise('choreForm.handlebars', 'GET', 'text/plain'),
   ];
 
   Promise.all(promises).then(function (values) {
@@ -116,10 +124,12 @@ function loadPage() {
       balance: values[2].balance,
       expenses: values[3],
       date: getDate(),
-      habitsLeft: values[6]
+      habitsLeft: values[6],
+      chores: values[7]
     };
     Handlebars.registerPartial('habitForm', values[4]);
     Handlebars.registerPartial('expenseForm', values[5]);
+    Handlebars.registerPartial('choreForm', values[8]);
     let html = values[0](content);
     /* Create a div with the built HTML and append it to the HTML body */
     let div = document.createElement('div');
@@ -195,6 +205,15 @@ function documentReady() {
 
   let createHabitForm = document.getElementById('createHabitForm');
   createHabitForm.addEventListener('submit', createHabitCallback);
+
+  document.getElementById('createChore').addEventListener('click',
+    function(event) {
+      event.preventDefault();
+      document.getElementById('createChoreForm').style.display = '';
+    });
+
+  let createChoreForm = document.getElementById('createChoreForm');
+  createChoreForm.addEventListener('submit', createChoreCallback);
 
   document.getElementById('changeBalance').addEventListener('click',
     function(event) {

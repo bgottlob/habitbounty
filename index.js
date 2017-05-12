@@ -6,6 +6,7 @@ const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/sharedLibs/habit.js');
 const Balance = require('./modules/sharedLibs/balance.js');
 const Expense = require('./modules/sharedLibs/expense.js');
+const Chore = require('./modules/sharedLibs/chore.js');
 require('./modules/sharedLibs/sharedLib.js');
 
 let router = new Router();
@@ -106,6 +107,10 @@ router.add('GET', /^\/all-habits$/, function (request, response) {
   simpleGET(loader.allHabits(), response);
 });
 
+router.add('GET', /^\/all-chores$/, function (request, response) {
+  simpleGET(loader.allChores(), response);
+});
+
 /* Return a list of active habits in JSON for any client to consume */
 router.add('GET', /^\/active-habits$/, function (request, response) {
   simpleGET(loader.activeHabits(), response);
@@ -132,6 +137,11 @@ router.add('GET', /^\/habits-left\/(\d{4}-\d{2}-\d{2})$/,
 router.add('GET', /^\/habit\/(\w+)$/, function (request, response, id) {
   if (!id) respondBadReq(response, 'request must contain habit ID in path');
   else simpleGET(loader.getHabit(id), response);
+});
+
+router.add('GET', /^\/chore\/(\w+)$/, function (request, response, id) {
+  if (!id) respondBadReq(response, 'request must contain chore ID in path');
+  else simpleGET(loader.getChore(id), response);
 });
 
 /* Get the info for the balance */
@@ -313,6 +323,25 @@ router.add('PUT', /^\/habit$/, function (request, response) {
     const habit = new Habit(body.name, body.amount);
     loader.createHabit(habit).then(function(result) {
       return loader.getHabit(result.id);
+    }).then(function (result) {
+      response.statusCode = 200;
+      response.end(JSON.stringify(result));
+    }).catch(function (err) {
+      response.statusCode = 400;
+      response.end(JSON.stringify(err));
+    });
+  }
+});
+
+router.add('PUT', /^\/chore$/, function (request, response) {
+  const body = request.body;
+  const invalidMsg = validateRequest(body, ['name', 'amount']);
+  if (invalidMsg) {
+    respondBadReq(response, invalidMsg);
+  } else {
+    const chore = new Chore(body.name, body.amount);
+    loader.createChore(chore).then(function(result) {
+      return loader.getChore(result.id);
     }).then(function (result) {
       response.statusCode = 200;
       response.end(JSON.stringify(result));
