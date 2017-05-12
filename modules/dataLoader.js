@@ -218,8 +218,12 @@ loader.habitsLeft = function(dateStr) {
   completedToday = promisify(db.view, ['queries', 'habits_by_completion_date',
     { reduce: true, group: true, key: dateStr.dateToArray() }]);
   return Promise.all([completedToday, activeCount]).then((results) => {
-    let active = results[1].rows[0].value;
+    let active;
     let completed;
+
+    if (results[1].rows.length <= 0) active = 0;
+    else active = results[1].rows[0].value;
+
     if (results[0].rows.length <= 0) completed = 0;
     else completed = results[0].rows[0].value
     return active - completed;
