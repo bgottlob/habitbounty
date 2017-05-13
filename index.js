@@ -9,7 +9,11 @@ const Expense = require('./modules/sharedLibs/expense.js');
 const Chore = require('./modules/sharedLibs/chore.js');
 require('./modules/sharedLibs/sharedLib.js');
 
+const choreRouter = require('./routes/choreRoutes');
+
 let router = new Router();
+router.routes = choreRouter.routes;
+
 let fileServer = ecstatic({root: __dirname + '/public'});
 
 /* For serving files that come from node modules */
@@ -333,24 +337,6 @@ router.add('PUT', /^\/habit$/, function (request, response) {
   }
 });
 
-router.add('PUT', /^\/chore$/, function (request, response) {
-  const body = request.body;
-  const invalidMsg = validateRequest(body, ['name', 'amount']);
-  if (invalidMsg) {
-    respondBadReq(response, invalidMsg);
-  } else {
-    const chore = new Chore(body.name, body.amount);
-    loader.createChore(chore).then(function(result) {
-      return loader.getChore(result.id);
-    }).then(function (result) {
-      response.statusCode = 200;
-      response.end(JSON.stringify(result));
-    }).catch(function (err) {
-      response.statusCode = 400;
-      response.end(JSON.stringify(err));
-    });
-  }
-});
 
 /* Creates a new expense */
 router.add('PUT', /^\/expense$/, function (request, response) {
