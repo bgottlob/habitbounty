@@ -6,13 +6,9 @@ const templateHandler = require('./modules/templateHandler.js');
 const Habit = require('./modules/sharedLibs/habit.js');
 const Balance = require('./modules/sharedLibs/balance.js');
 const Expense = require('./modules/sharedLibs/expense.js');
-const Chore = require('./modules/sharedLibs/chore.js');
 require('./modules/sharedLibs/sharedLib.js');
 
-const choreRouter = require('./routes/choreRoutes');
-
 let router = new Router();
-router.routes = choreRouter.routes;
 
 let fileServer = ecstatic({root: __dirname + '/public'});
 
@@ -62,57 +58,9 @@ router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename)
   sharedLibServer(request, response);
 });
 
-function simpleGET(loaderPromise, response) {
-  response.setHeader('Content-Type', 'application/json');
-  loaderPromise.then(function (results) {
-    response.end(JSON.stringify(results));
-  }).catch(function (err) {
-    response.statusCode = 404;
-    response.end(JSON.stringify(err));
-  });
-}
-
-function respondBadReq(response, reason) {
-  response.statusCode = 400;
-  response.end(reason);
-}
-
-function validateRequest(body, required, optional, moreFunc) {
-
-  let invalidMsg = '';
-
-  let all = [];
-  if (required) all = all.concat(required);
-  if (optional) all = all.concat(optional);
-
-  let missing = required.filter((field) => {
-    return typeof(body[field]) === 'undefined';
-  });
-  if (missing.length > 0)
-    invalidMsg += 'the following fields are required in the request: ' + missing.join(', ') + '. ';
-
-  let extras = Object.keys(body).filter((field) => {
-    return all.indexOf(field) === -1
-  });
-  if (extras.length > 0)
-    invalidMsg += 'the following fields are not allowed in the request: ' + extras.join(', ') + '. ';
-
-  if (moreFunc) {
-    moreMsg = moreFunc(body);
-    if (moreMsg) invalidMsg += moreMsg;
-  }
-
-  if (invalidMsg === '') return false;
-  else return invalidMsg;
-}
-
 /* Return a list of all habits in JSON for any client to consume */
 router.add('GET', /^\/all-habits$/, function (request, response) {
   simpleGET(loader.allHabits(), response);
-});
-
-router.add('GET', /^\/all-chores$/, function (request, response) {
-  simpleGET(loader.allChores(), response);
 });
 
 /* Return a list of active habits in JSON for any client to consume */
@@ -141,11 +89,6 @@ router.add('GET', /^\/habits-left\/(\d{4}-\d{2}-\d{2})$/,
 router.add('GET', /^\/habit\/(\w+)$/, function (request, response, id) {
   if (!id) respondBadReq(response, 'request must contain habit ID in path');
   else simpleGET(loader.getHabit(id), response);
-});
-
-router.add('GET', /^\/chore\/(\w+)$/, function (request, response, id) {
-  if (!id) respondBadReq(response, 'request must contain chore ID in path');
-  else simpleGET(loader.getChore(id), response);
 });
 
 /* Get the info for the balance */
@@ -337,7 +280,6 @@ router.add('PUT', /^\/habit$/, function (request, response) {
   }
 });
 
-
 /* Creates a new expense */
 router.add('PUT', /^\/expense$/, function (request, response) {
   const body = request.body;
@@ -358,6 +300,7 @@ router.add('PUT', /^\/expense$/, function (request, response) {
   }
 });
 
+router.routes = router.routes.concat(require('./routes/choreRoutes').routes);
 http.createServer(function (request, response) {
   let body = [];
   request.on('data', function (chunk) {
