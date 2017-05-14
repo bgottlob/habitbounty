@@ -1,13 +1,17 @@
 const Router = require('../modules/router');
 const loader = require('../modules/dataLoader');
+
 const helpers = require('../modules/routeHelpers');
+const simpleGET = helpers.simpleGET;
+const respondBadReq = helpers.respondBadReq;
+const validateRequest = helpers.validateRequest;
 
 const Chore = require('../modules/sharedLibs/chore');
 
 let router = module.exports = new Router();
 
 router.add('GET', /^\/all-chores$/, function (request, response) {
-  helper.simpleGET(loader.allChores(), response);
+  simpleGET(loader.allChores(), response);
 });
 
 router.add('GET', /^\/chore\/(\w+)$/, function (request, response, id) {
