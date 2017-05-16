@@ -67,6 +67,15 @@ function setDate(date) {
   window.date = date;
 }
 
+function setHabit(id, rev, habit) {
+  
+
+}
+
+function getHabit(id) {
+
+}
+
 function buildDatePicker() {
   function createOption(dateStr, selected) {
     let opt = document.createElement('option');
@@ -116,6 +125,44 @@ function loadPage() {
     httpPromise('choreForm.handlebars', 'GET', 'text/plain'),
   ];
 
+  /* Creates a map of ids to revs + habits to be used globally on the page */
+  function buildHabits(results) {
+    let habits = {};
+    for (let i = 0; i < results.length; i++) {
+      habits[results[i].id] = {
+        rev: results[i].rev,
+        habit: new Habit(results[i].name, results[i].amount, results[i].log)
+      };
+    }
+    return habits;
+  }
+
+  /* Creates a map of ids to revs + chores to be used globally on the page */
+  function buildChores(results) {
+    let chores = {};
+    for (let i = 0; i < results.length; i++) {
+      chores[results[i].id] = {
+        rev: results[i].rev,
+        chore: new Chore(results[i].name, results[i].amount, results[i].log)
+      };
+    }
+    return chores;
+  }
+
+  /* Creates a map of ids to revs + expenses to be used globally on the page */
+  function buildExpenses(results) {
+    let expenses = {};
+    for (let i = 0; i < results.length; i++) {
+      expenses[results[i].id] = {
+        rev: results[i].rev,
+        expense: new Expense(
+          results[i].name, results[i].amount, results[i].dateCharged
+        )
+      };
+    }
+    return expenses;
+  }
+
   Promise.all(promises).then(function (values) {
     /* Build the HTML using the compiled Handlebars template with the habit
      * and balance data */
@@ -127,6 +174,12 @@ function loadPage() {
       habitsLeft: values[6],
       chores: values[7]
     };
+    window.activeHabits = buildHabits(values[1]);
+    window.expenses = buildHabits(values[3]);
+    window.chores = buildChores(values[7]);
+    console.log(window.activeHabits);
+    console.log(window.expenses);
+    console.log(window.chores);
     Handlebars.registerPartial('habitForm', values[4]);
     Handlebars.registerPartial('expenseForm', values[5]);
     Handlebars.registerPartial('choreForm', values[8]);

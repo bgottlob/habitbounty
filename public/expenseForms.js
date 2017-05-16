@@ -1,3 +1,4 @@
+/* TODO: Just refreshing the handlebars template would probably be better */
 function refreshExpense(div, expense, rev) {
   div.dataset.rev = rev;
 
@@ -9,8 +10,14 @@ function refreshExpense(div, expense, rev) {
   form.amount.value = expense.amount;
 
   let cbox = div.querySelector('.chargeExpense');
-  if (expense.charged()) check(cbox);
-  else uncheck(cbox);
+  if (expense.charged()) {
+    check(cbox);
+    div.querySelector('.dateLabel').style.display = '';
+    div.querySelector('.dateLabel').textContent = expense.dateCharged;
+  } else {
+    uncheck(cbox);
+    div.querySelector('.dateLabel').style.display = 'none';
+  }
 }
 
 function createExpenseCallback(event) {
