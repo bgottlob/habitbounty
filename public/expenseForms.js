@@ -1,23 +1,31 @@
-/* TODO: Just refreshing the handlebars template would probably be better */
-function refreshExpense(div, expense, rev) {
-  div.dataset.rev = rev;
+function refreshExpense(oldDiv, expense, rev) {
+  let newDivParent = document.createElement('div');
+  let newHTML = getExpenseTemplate()({
+    id: oldDiv.dataset.id,
+    rev: rev,
+    name: expense.name,
+    amount: expense.amount,
+    dateCharged: expense.dateCharged
+  });
+  newDivParent.innerHTML = newHTML;
+  newDiv = newDivParent.firstChild;
+  oldDiv.parentNode.replaceChild(newDiv, oldDiv);
 
-  div.querySelector('.nameLabel').textContent = expense.name;
-  div.querySelector('.amountLabel').textContent = expense.amount;
-
-  let form = div.querySelector('.editExpenseForm');
-  form.name.value = expense.name;
-  form.amount.value = expense.amount;
-
-  let cbox = div.querySelector('.chargeExpense');
-  if (expense.charged()) {
-    check(cbox);
-    div.querySelector('.dateLabel').style.display = '';
-    div.querySelector('.dateLabel').textContent = expense.dateCharged;
-  } else {
-    uncheck(cbox);
-    div.querySelector('.dateLabel').style.display = 'none';
-  }
+  /* Must re-attach event handlers to new elements
+   * TODO: create a function for this and remove repeated code from index.js */
+  newDiv.querySelector('.chargeExpense')
+    .addEventListener('click', chargeExpenseCallback);
+  newDiv.querySelector('.editExpenseForm')
+    .addEventListener('submit', editExpenseCallback);
+  newDiv.querySelector('.editExpense').addEventListener('click',
+    function (event) {
+      let form = event.currentTarget.parentNode.querySelector('.editExpenseForm');
+      if (form.style.display === '')
+        form.style.display = 'none';
+      else
+        form.style.display = '';
+    }
+  );
 }
 
 function createExpenseCallback(event) {

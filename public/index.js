@@ -1,4 +1,5 @@
 /* Client side code for index.html view */
+/* TODO: Get rid of all window calls */
 
 /* ****** Setup for the three requests needed to initialize page ********
  * Error handling for parsing bad Handlebars template or JSON handled in
@@ -67,13 +68,11 @@ function setDate(date) {
   window.date = date;
 }
 
-function setHabit(id, rev, habit) {
-  
-
-}
-
-function getHabit(id) {
-
+/* Could turn this into a closure that uses a local variable, so that window
+ * does not need to be used. It's potentially unsafe because it can be edited
+ * elsewhere in the code */
+function getExpenseTemplate() {
+  return window.expenseTemplate;
 }
 
 function buildDatePicker() {
@@ -177,9 +176,7 @@ function loadPage() {
     window.activeHabits = buildHabits(values[1]);
     window.expenses = buildHabits(values[3]);
     window.chores = buildChores(values[7]);
-    console.log(window.activeHabits);
-    console.log(window.expenses);
-    console.log(window.chores);
+    window.expenseTemplate = Handlebars.compile(values[5]);
     Handlebars.registerPartial('habitForm', values[4]);
     Handlebars.registerPartial('expenseForm', values[5]);
     Handlebars.registerPartial('choreForm', values[8]);
