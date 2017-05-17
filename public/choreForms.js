@@ -1,19 +1,12 @@
 /* Populates the chore data within the specified div */
 function refreshChore(div, chore, rev) {
-  div.dataset.rev = rev;
-
-  div.querySelector('.nameLabel').textContent = chore.name;
-  div.querySelector('.amountLabel').textContent = chore.amount;
-
-  let form = div.querySelector('.editChoreForm');
-  form.name.value = chore.name;
-  form.amount.value = chore.amount;
-
-  let cbox = div.querySelector('.completeChore');
-  if (chore.isComplete(getDate()))
-    check(cbox);
-  else
-    uncheck(cbox);
+  let newDivParent = document.createElement('div');
+  chore.id = oldDiv.dataset.id;
+  chore.rev = rev;
+  let newHTML = getHabitTemplate()(chore);
+  newDivParent.innerHTML = newHTML;
+  newDiv = newDivParent.firstChild;
+  oldDiv.parentNode.replaceChild(newDiv, oldDiv);
 }
 
 function createChoreCallback(event) {

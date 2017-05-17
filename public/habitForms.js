@@ -1,19 +1,33 @@
 /* Populates the habit data within the specified div */
-function refreshHabit(div, habit, rev) {
-  div.dataset.rev = rev;
+function refreshHabit(oldDiv, habit, rev) {
+  let newDivParent = document.createElement('div');
+  habit.id = oldDiv.dataset.id;
+  habit.rev = rev;
+  let newHTML = getHabitTemplate()(habit);
+  newDivParent.innerHTML = newHTML;
+  newDiv = newDivParent.firstChild;
+  oldDiv.parentNode.replaceChild(newDiv, oldDiv);
+  attachHabitListeners(newDiv);
+}
 
-  div.querySelector('.nameLabel').textContent = habit.name;
-  div.querySelector('.amountLabel').textContent = habit.amount;
-
-  let form = div.querySelector('.editHabitForm');
-  form.name.value = habit.name;
-  form.amount.value = habit.amount;
-
-  let cbox = div.querySelector('.completeHabit');
-  if (habit.isComplete(getDate()))
-    check(cbox);
-  else
-    uncheck(cbox);
+function attachHabitListeners(div) {
+  div.querySelector('.editHabit').addEventListener('click', function(event) {
+    let form = event.currentTarget.parentNode.querySelector('.editHabitForm');
+    if (form.style.display === '')
+      form.style.display = 'none';
+    else
+      form.style.display = '';
+  });
+  div.querySelector('.editHabitForm')
+    .addEventListener('submit', editHabitCallback);
+  div.querySelector('.archiveHabit')
+    .addEventListener('click', archiveHabitCallback);
+  div.querySelector('.completeHabit')
+    .addEventListener('click', completeHabitCallback);
+  div.querySelector('.cancel').addEventListener('click', function(event) {
+    event.preventDefault(); /* Prevent button from reloading page */
+    event.currentTarget.parentNode.parentNode.style.display = 'none';
+  });
 }
 
 function createHabitCallback(event) {

@@ -1,8 +1,10 @@
 <div class="expense" data-rev="{{rev}}" data-id="{{id}}">
   <input class="chargeExpense" type="checkbox" {{isCharged this}}/>
-  <span class="nameLabel">{{name}}</span>
-  $<span class="amountLabel">{{amount}}</span>
-  <span class="dateLabel">{{dateCharged}}</span>
+  <span>{{name}}</span>
+  $<span>{{amount}}</span>
+  {{#if dateCharged}}
+    <br><span>Charged on <strong>{{dateCharged}}</strong></span>
+  {{/if}}
   <button class="button button-clear editExpense">Edit</button>
   <form class="editExpenseForm" style="display:none;">
     <fieldset>

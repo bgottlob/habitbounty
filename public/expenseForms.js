@@ -1,5 +1,6 @@
 function refreshExpense(oldDiv, expense, rev) {
   let newDivParent = document.createElement('div');
+  // TODO: Change the template to accept an Expense object maybe
   let newHTML = getExpenseTemplate()({
     id: oldDiv.dataset.id,
     rev: rev,
@@ -10,22 +11,31 @@ function refreshExpense(oldDiv, expense, rev) {
   newDivParent.innerHTML = newHTML;
   newDiv = newDivParent.firstChild;
   oldDiv.parentNode.replaceChild(newDiv, oldDiv);
+  // Must attach listeners to the new elements
+  attachExpenseListeners(newDiv);
+}
 
-  /* Must re-attach event handlers to new elements
-   * TODO: create a function for this and remove repeated code from index.js */
-  newDiv.querySelector('.chargeExpense')
+function attachExpenseListeners(div) {
+  div.querySelector('.chargeExpense')
     .addEventListener('click', chargeExpenseCallback);
-  newDiv.querySelector('.editExpenseForm')
+  div.querySelector('.editExpenseForm')
     .addEventListener('submit', editExpenseCallback);
-  newDiv.querySelector('.editExpense').addEventListener('click',
+  div.querySelector('.editExpense').addEventListener('click',
     function (event) {
-      let form = event.currentTarget.parentNode.querySelector('.editExpenseForm');
+      let form = event.currentTarget.parentNode
+        .querySelector('.editExpenseForm');
+
       if (form.style.display === '')
         form.style.display = 'none';
       else
         form.style.display = '';
     }
   );
+  div.querySelector('.cancel').addEventListener('click', function(event) {
+    // Prevent button from reloading page
+    event.preventDefault();
+    event.currentTarget.parentNode.parentNode.style.display = 'none';
+  });
 }
 
 function createExpenseCallback(event) {
