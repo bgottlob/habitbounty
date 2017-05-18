@@ -3,7 +3,11 @@ function refreshHabit(oldDiv, habit, rev) {
   let newDivParent = document.createElement('div');
   habit.id = oldDiv.dataset.id;
   habit.rev = rev;
-  let newHTML = getHabitTemplate()(habit);
+  let newHTML = getHabitTemplate()({
+    id: oldDiv.dataset.id,
+    rev: rev,
+    habit: habit
+  });
   newDivParent.innerHTML = newHTML;
   newDiv = newDivParent.firstChild;
   oldDiv.parentNode.replaceChild(newDiv, oldDiv);

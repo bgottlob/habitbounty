@@ -46,8 +46,9 @@ function habitsLeftPromise(dateStr) {
 /****** End of setup for the three requests needed to initialize page ********/
 
 /* Checks whether habit is complete; if so, check off its checkbox */
-Handlebars.registerHelper('isComplete', function(obj) {
-  if (habitFromObject(obj).isComplete(getDate()))
+Handlebars.registerHelper('isComplete', function(habit) {
+  console.log(habit);
+  if (habit.isComplete(getDate()))
     return 'checked';
 });
 /* Checks whether expense has been charged */
@@ -134,13 +135,20 @@ function loadPage() {
     /* Build the HTML using the compiled Handlebars template with the habit
      * and balance data */
     let content = {
-      habits: values[1],
+      habits: values[1].map((result) => {
+        return {
+          id: result.id,
+          rev: result.rev,
+          habit: new Habit(result.name, result.amount, result.log)
+        };
+      }),
       balance: values[2].balance,
       expenses: values[3],
       date: getDate(),
       habitsLeft: values[6],
       chores: values[7]
     };
+    console.log(content);
 
     window.habitTemplate = Handlebars.compile(values[4]);
     window.expenseTemplate = Handlebars.compile(values[5]);
