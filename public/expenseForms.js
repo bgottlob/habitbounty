@@ -1,13 +1,7 @@
-function refreshExpense(oldDiv, expense, rev) {
+function refreshExpense(oldDiv, expenseContent) {
   let newDivParent = document.createElement('div');
-  // TODO: Change the template to accept an Expense object maybe
-  let newHTML = getExpenseTemplate()({
-    id: oldDiv.dataset.id,
-    rev: rev,
-    name: expense.name,
-    amount: expense.amount,
-    dateCharged: expense.dateCharged
-  });
+  console.log(expenseContent);
+  let newHTML = getExpenseTemplate()(expenseContent);
   newDivParent.innerHTML = newHTML;
   newDiv = newDivParent.firstChild;
   oldDiv.parentNode.replaceChild(newDiv, oldDiv);
@@ -72,7 +66,13 @@ function chargeExpenseCallback(event) {
        * reflects the truth of what is in the database */
       result = JSON.parse(result);
       document.getElementById('balance').textContent = result.balance;
-      refreshExpense(div, expenseFromObject(result.expense), result.expense.rev);
+      let expenseContent = {
+        id: result.expense.id,
+        rev: result.expense.rev,
+        expense: new Expense(result.expense.name, result.expense.amount,
+          result.expense.dateCharged)
+      };
+      refreshExpense(div, expenseContent);
       cbox.disabled = false;
     }).catch(function (err) {
       /* Set the checkbox to be the opposite of what it has now, the habit's
@@ -97,7 +97,14 @@ function editExpenseCallback(event) {
     .then(function (result) {
       form.style.display = 'none';
       result = JSON.parse(result);
-      refreshExpense(div, expenseFromObject(result.expense), result.expense.rev);
+      console.log(result);
+      let expenseContent = {
+        id: result.expense.id,
+        rev: result.expense.rev,
+        expense: new Expense(result.expense.name, result.expense.amount,
+          result.expense.dateCharged)
+      };
+      refreshExpense(div, expenseContent);
       document.getElementById('balance').textContent = result.balance.balance;
     }).catch(function (err) {
       console.log(err);

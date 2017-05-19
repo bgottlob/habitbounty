@@ -14,14 +14,26 @@ function templatePromise() {
 function habitPromise() {
   return httpPromise('active-habits', 'GET', 'application/json')
     .then(function (result) {
-      return Promise.resolve(JSON.parse(result));
+      return Promise.resolve(JSON.parse(result).map((entry) => {
+        return {
+          id: entry.id,
+          rev: entry.rev,
+          habit: new Habit(entry.name, entry.amount, entry.log)
+        };
+      }));
     });
 }
 
 function chorePromise() {
   return httpPromise('all-chores', 'GET', 'application/json')
     .then(function (result) {
-      return Promise.resolve(JSON.parse(result));
+      return Promise.resolve(JSON.parse(result).map((entry) => {
+        return {
+          id: entry.id,
+          rev: entry.rev,
+          chore: new Chore(entry.name, entry.amount, entry.log)
+        };
+      }));
     });
 }
 
@@ -35,7 +47,13 @@ function balancePromise() {
 function expensePromise() {
   return httpPromise('all-expenses', 'GET', 'application/json')
     .then(function (result) {
-      return Promise.resolve(JSON.parse(result));
+      return Promise.resolve(JSON.parse(result).map((entry) => {
+        return {
+          id: entry.id,
+          rev: entry.rev,
+          expense: new Expense(entry.name, entry.amount, entry.dateCharged)
+        };
+      }));
     });
 }
 
@@ -47,13 +65,12 @@ function habitsLeftPromise(dateStr) {
 
 /* Checks whether habit is complete; if so, check off its checkbox */
 Handlebars.registerHelper('isComplete', function(habit) {
-  console.log(habit);
   if (habit.isComplete(getDate()))
     return 'checked';
 });
 /* Checks whether expense has been charged */
-Handlebars.registerHelper('isCharged', function(obj) {
-  if (expenseFromObject(obj).charged())
+Handlebars.registerHelper('isCharged', function(expense) {
+  if (expense.charged())
     return 'checked';
 });
 
@@ -135,20 +152,13 @@ function loadPage() {
     /* Build the HTML using the compiled Handlebars template with the habit
      * and balance data */
     let content = {
-      habits: values[1].map((result) => {
-        return {
-          id: result.id,
-          rev: result.rev,
-          habit: new Habit(result.name, result.amount, result.log)
-        };
-      }),
+      habits: values[1],
       balance: values[2].balance,
       expenses: values[3],
       date: getDate(),
       habitsLeft: values[6],
       chores: values[7]
     };
-    console.log(content);
 
     window.habitTemplate = Handlebars.compile(values[4]);
     window.expenseTemplate = Handlebars.compile(values[5]);

@@ -65,6 +65,7 @@ function editHabitCallback(event) {
     .then(function (result) {
       form.style.display = 'none';
       result = JSON.parse(result);
+      console.log(result);
       refreshHabit(div, habitFromObject(result), result.rev);
     }).catch(function (err) {
       console.log(err);
@@ -93,6 +94,7 @@ function completeHabitCallback(event) {
        * reflects the truth of what is in the database */
       result = JSON.parse(result);
       document.getElementById('balance').textContent = result.balance;
+      console.log(result);
       refreshHabit(div, habitFromObject(result.habit), result.habit.rev);
       cbox.disabled = false;
       return habitsLeftPromise(getDate());
