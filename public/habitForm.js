@@ -1,13 +1,7 @@
 /* Populates the habit data within the specified div */
-function refreshHabit(oldDiv, habit, rev) {
+function refreshHabit(oldDiv, habitContent) {
   let newDivParent = document.createElement('div');
-  habit.id = oldDiv.dataset.id;
-  habit.rev = rev;
-  let newHTML = getHabitTemplate()({
-    id: oldDiv.dataset.id,
-    rev: rev,
-    habit: habit
-  });
+  let newHTML = getHabitTemplate()(habitContent);
   newDivParent.innerHTML = newHTML;
   newDiv = newDivParent.firstChild;
   oldDiv.parentNode.replaceChild(newDiv, oldDiv);
@@ -65,8 +59,12 @@ function editHabitCallback(event) {
     .then(function (result) {
       form.style.display = 'none';
       result = JSON.parse(result);
-      console.log(result);
-      refreshHabit(div, habitFromObject(result), result.rev);
+      let habitContent = {
+        id: result.id,
+        rev: result.rev,
+        habit: new Habit(result.name, result.amount, result.log)
+      };
+      refreshHabit(div, habitContent);
     }).catch(function (err) {
       console.log(err);
       reloadPage();
@@ -95,7 +93,12 @@ function completeHabitCallback(event) {
       result = JSON.parse(result);
       document.getElementById('balance').textContent = result.balance;
       console.log(result);
-      refreshHabit(div, habitFromObject(result.habit), result.habit.rev);
+      let habitContent = {
+        id: result.habit.id,
+        rev: result.habit.rev,
+        habit: new Habit(result.habit.name, result.habit.amount, result.habit.log)
+      };
+      refreshHabit(div, habitContent);
       cbox.disabled = false;
       return habitsLeftPromise(getDate());
     }).then((result) => {
