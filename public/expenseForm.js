@@ -1,6 +1,5 @@
 function refreshExpense(oldDiv, expenseContent) {
   let newDivParent = document.createElement('div');
-  console.log(expenseContent);
   let newHTML = getExpenseTemplate()(expenseContent);
   newDivParent.innerHTML = newHTML;
   newDiv = newDivParent.firstChild;
@@ -97,7 +96,6 @@ function editExpenseCallback(event) {
     .then(function (result) {
       form.style.display = 'none';
       result = JSON.parse(result);
-      console.log(result);
       let expenseContent = {
         id: result.expense.id,
         rev: result.expense.rev,
