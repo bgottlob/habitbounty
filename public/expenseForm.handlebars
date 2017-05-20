@@ -1,15 +1,20 @@
 <div class="expense" data-rev="{{rev}}" data-id="{{id}}">
-  <input class="chargeExpense" type="checkbox" {{isCharged this}}/>
-  <span class="nameLabel">{{name}}</span>
-  $<span class="amountLabel">{{amount}}</span>
+  <input class="chargeExpense" type="checkbox" {{isCharged expense}}/>
+  <span>{{expense.name}}</span>
+  $<span>{{expense.amount}}</span>
+  {{!-- TODO: Change this to use the isCharged function
+  {{#if isCharged expense}} --}}
+  {{#if expense.dateCharged}}
+    <br><span>Charged on <strong>{{expense.dateCharged}}</strong></span>
+  {{/if}}
   <button class="button button-clear editExpense">Edit</button>
   <form class="editExpenseForm" style="display:none;">
     <fieldset>
       <label>Name</label>
-      <input name="name" type="text" value="{{name}}" required>
+      <input name="name" type="text" value="{{expense.name}}" required>
       <label>Reward</label>
       <input name="amount" type="number" min="0.01" step="0.01"
-                                                    value="{{amount}}" required>
+                                                    value="{{expense.amount}}" required>
       <button class="button button-outline cancel">Cancel</button>
       <input class="button" value="Submit" type="Submit">
     </fieldset>

@@ -1,4 +1,5 @@
 /* Client side code for index.html view */
+/* TODO: Get rid of all window calls */
 
 /* ****** Setup for the three requests needed to initialize page ********
  * Error handling for parsing bad Handlebars template or JSON handled in
@@ -13,14 +14,26 @@ function templatePromise() {
 function habitPromise() {
   return httpPromise('active-habits', 'GET', 'application/json')
     .then(function (result) {
-      return Promise.resolve(JSON.parse(result));
+      return Promise.resolve(JSON.parse(result).map((entry) => {
+        return {
+          id: entry.id,
+          rev: entry.rev,
+          habit: new Habit(entry.name, entry.amount, entry.log)
+        };
+      }));
     });
 }
 
 function chorePromise() {
   return httpPromise('all-chores', 'GET', 'application/json')
     .then(function (result) {
-      return Promise.resolve(JSON.parse(result));
+      return Promise.resolve(JSON.parse(result).map((entry) => {
+        return {
+          id: entry.id,
+          rev: entry.rev,
+          chore: new Chore(entry.name, entry.amount, entry.log)
+        };
+      }));
     });
 }
 
@@ -34,7 +47,13 @@ function balancePromise() {
 function expensePromise() {
   return httpPromise('all-expenses', 'GET', 'application/json')
     .then(function (result) {
-      return Promise.resolve(JSON.parse(result));
+      return Promise.resolve(JSON.parse(result).map((entry) => {
+        return {
+          id: entry.id,
+          rev: entry.rev,
+          expense: new Expense(entry.name, entry.amount, entry.dateCharged)
+        };
+      }));
     });
 }
 
@@ -45,13 +64,13 @@ function habitsLeftPromise(dateStr) {
 /****** End of setup for the three requests needed to initialize page ********/
 
 /* Checks whether habit is complete; if so, check off its checkbox */
-Handlebars.registerHelper('isComplete', function(obj) {
-  if (habitFromObject(obj).isComplete(getDate()))
+Handlebars.registerHelper('isComplete', function(habit) {
+  if (habit.isComplete(getDate()))
     return 'checked';
 });
 /* Checks whether expense has been charged */
-Handlebars.registerHelper('isCharged', function(obj) {
-  if (expenseFromObject(obj).charged())
+Handlebars.registerHelper('isCharged', function(expense) {
+  if (expense.charged())
     return 'checked';
 });
 
@@ -65,6 +84,19 @@ function getDate() {
 
 function setDate(date) {
   window.date = date;
+}
+
+/* Could turn this into a closure that uses a local variable, so that window
+ * does not need to be used. It's potentially unsafe because it can be edited
+ * elsewhere in the code */
+function getExpenseTemplate() {
+  return window.expenseTemplate;
+}
+function getHabitTemplate() {
+  return window.habitTemplate;
+}
+function getChoreTemplate() {
+  return window.choreTemplate;
 }
 
 function buildDatePicker() {
@@ -127,9 +159,15 @@ function loadPage() {
       habitsLeft: values[6],
       chores: values[7]
     };
+
+    window.habitTemplate = Handlebars.compile(values[4]);
+    window.expenseTemplate = Handlebars.compile(values[5]);
+    window.choreTemplate = Handlebars.compile(values[8]);
+
     Handlebars.registerPartial('habitForm', values[4]);
     Handlebars.registerPartial('expenseForm', values[5]);
     Handlebars.registerPartial('choreForm', values[8]);
+
     let html = values[0](content);
     /* Create a div with the built HTML and append it to the HTML body */
     let div = document.createElement('div');
@@ -167,35 +205,13 @@ loadPage();
 function documentReady() {
   buildDatePicker();
 
-  let editButtons = document.getElementsByClassName('editHabit');
-  for (let i = 0; i < editButtons.length; i++) {
-    editButtons[i].addEventListener('click', function (event) {
-      let form = event.currentTarget.parentNode.querySelector('.editHabitForm');
-      if (form.style.display === '')
-        form.style.display = 'none';
-      else
-        form.style.display = '';
-    });
-  }
+  let habitDivs = document.getElementsByClassName('habit');
+  for (let i = 0; i < habitDivs.length; i++)
+    attachHabitListeners(habitDivs[i]);
 
-  let editExpenseButtons = document.getElementsByClassName('editExpense');
-  for (let i = 0; i < editExpenseButtons.length; i++) {
-    editExpenseButtons[i].addEventListener('click', function (event) {
-      let form = event.currentTarget.parentNode.querySelector('.editExpenseForm');
-      if (form.style.display === '')
-        form.style.display = 'none';
-      else
-        form.style.display = '';
-    });
-  }
-
-  let cancelButtons = document.getElementsByClassName('cancel');
-  for (let i = 0; i < cancelButtons.length; i++) {
-    cancelButtons[i].addEventListener('click', function (event) {
-      event.preventDefault(); /* Prevent button from reloading page */
-      event.currentTarget.parentNode.parentNode.style.display = 'none';
-    });
-  }
+  let expenseDivs = document.getElementsByClassName('expense');
+  for (let i = 0; i < expenseDivs.length; i++)
+    attachExpenseListeners(expenseDivs[i]);
 
   document.getElementById('createHabit').addEventListener('click',
     function(event) {
@@ -236,23 +252,6 @@ function documentReady() {
         reloadPage();
       });
   });
-
-  let editHabitForms = document.getElementsByClassName('editHabitForm');
-  for (let i = 0; i < editHabitForms.length; i++)
-    editHabitForms[i].addEventListener('submit', editHabitCallback);
-
-  let archiveHabitButtons = document.getElementsByClassName('archiveHabit');
-  for (let i = 0; i < archiveHabitButtons.length; i++)
-    archiveHabitButtons[i].addEventListener('click', archiveHabitCallback);
-
-  let editExpenseForms = document.getElementsByClassName('editExpenseForm');
-  for (let i = 0; i < editExpenseForms.length; i++)
-    editExpenseForms[i].addEventListener('submit', editExpenseCallback);
-
-  let habitCheckboxes = document.getElementsByClassName('completeHabit');
-  for (let i = 0; i < habitCheckboxes.length; i++) {
-    habitCheckboxes[i].addEventListener("click", completeHabitCallback);
-  }
 
   document.getElementById('createExpense').addEventListener('click',
     function(event) {

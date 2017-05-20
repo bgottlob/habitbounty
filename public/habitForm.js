@@ -1,19 +1,31 @@
 /* Populates the habit data within the specified div */
-function refreshHabit(div, habit, rev) {
-  div.dataset.rev = rev;
+function refreshHabit(oldDiv, habitContent) {
+  let newDivParent = document.createElement('div');
+  let newHTML = getHabitTemplate()(habitContent);
+  newDivParent.innerHTML = newHTML;
+  newDiv = newDivParent.firstChild;
+  oldDiv.parentNode.replaceChild(newDiv, oldDiv);
+  attachHabitListeners(newDiv);
+}
 
-  div.querySelector('.nameLabel').textContent = habit.name;
-  div.querySelector('.amountLabel').textContent = habit.amount;
-
-  let form = div.querySelector('.editHabitForm');
-  form.name.value = habit.name;
-  form.amount.value = habit.amount;
-
-  let cbox = div.querySelector('.completeHabit');
-  if (habit.isComplete(getDate()))
-    check(cbox);
-  else
-    uncheck(cbox);
+function attachHabitListeners(div) {
+  div.querySelector('.editHabit').addEventListener('click', function(event) {
+    let form = event.currentTarget.parentNode.querySelector('.editHabitForm');
+    if (form.style.display === '')
+      form.style.display = 'none';
+    else
+      form.style.display = '';
+  });
+  div.querySelector('.editHabitForm')
+    .addEventListener('submit', editHabitCallback);
+  div.querySelector('.archiveHabit')
+    .addEventListener('click', archiveHabitCallback);
+  div.querySelector('.completeHabit')
+    .addEventListener('click', completeHabitCallback);
+  div.querySelector('.cancel').addEventListener('click', function(event) {
+    event.preventDefault(); /* Prevent button from reloading page */
+    event.currentTarget.parentNode.parentNode.style.display = 'none';
+  });
 }
 
 function createHabitCallback(event) {
@@ -47,7 +59,12 @@ function editHabitCallback(event) {
     .then(function (result) {
       form.style.display = 'none';
       result = JSON.parse(result);
-      refreshHabit(div, habitFromObject(result), result.rev);
+      let habitContent = {
+        id: result.id,
+        rev: result.rev,
+        habit: new Habit(result.name, result.amount, result.log)
+      };
+      refreshHabit(div, habitContent);
     }).catch(function (err) {
       console.log(err);
       reloadPage();
@@ -75,7 +92,13 @@ function completeHabitCallback(event) {
        * reflects the truth of what is in the database */
       result = JSON.parse(result);
       document.getElementById('balance').textContent = result.balance;
-      refreshHabit(div, habitFromObject(result.habit), result.habit.rev);
+      console.log(result);
+      let habitContent = {
+        id: result.habit.id,
+        rev: result.habit.rev,
+        habit: new Habit(result.habit.name, result.habit.amount, result.habit.log)
+      };
+      refreshHabit(div, habitContent);
       cbox.disabled = false;
       return habitsLeftPromise(getDate());
     }).then((result) => {
