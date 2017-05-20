@@ -1,16 +1,34 @@
-function refreshExpense(div, expense, rev) {
-  div.dataset.rev = rev;
+function refreshExpense(oldDiv, expenseContent) {
+  let newDivParent = document.createElement('div');
+  let newHTML = getExpenseTemplate()(expenseContent);
+  newDivParent.innerHTML = newHTML;
+  newDiv = newDivParent.firstChild;
+  oldDiv.parentNode.replaceChild(newDiv, oldDiv);
+  // Must attach listeners to the new elements
+  attachExpenseListeners(newDiv);
+}
 
-  div.querySelector('.nameLabel').textContent = expense.name;
-  div.querySelector('.amountLabel').textContent = expense.amount;
+function attachExpenseListeners(div) {
+  div.querySelector('.chargeExpense')
+    .addEventListener('click', chargeExpenseCallback);
+  div.querySelector('.editExpenseForm')
+    .addEventListener('submit', editExpenseCallback);
+  div.querySelector('.editExpense').addEventListener('click',
+    function (event) {
+      let form = event.currentTarget.parentNode
+        .querySelector('.editExpenseForm');
 
-  let form = div.querySelector('.editExpenseForm');
-  form.name.value = expense.name;
-  form.amount.value = expense.amount;
-
-  let cbox = div.querySelector('.chargeExpense');
-  if (expense.charged()) check(cbox);
-  else uncheck(cbox);
+      if (form.style.display === '')
+        form.style.display = 'none';
+      else
+        form.style.display = '';
+    }
+  );
+  div.querySelector('.cancel').addEventListener('click', function(event) {
+    // Prevent button from reloading page
+    event.preventDefault();
+    event.currentTarget.parentNode.parentNode.style.display = 'none';
+  });
 }
 
 function createExpenseCallback(event) {
@@ -47,7 +65,13 @@ function chargeExpenseCallback(event) {
        * reflects the truth of what is in the database */
       result = JSON.parse(result);
       document.getElementById('balance').textContent = result.balance;
-      refreshExpense(div, expenseFromObject(result.expense), result.expense.rev);
+      let expenseContent = {
+        id: result.expense.id,
+        rev: result.expense.rev,
+        expense: new Expense(result.expense.name, result.expense.amount,
+          result.expense.dateCharged)
+      };
+      refreshExpense(div, expenseContent);
       cbox.disabled = false;
     }).catch(function (err) {
       /* Set the checkbox to be the opposite of what it has now, the habit's
@@ -72,7 +96,13 @@ function editExpenseCallback(event) {
     .then(function (result) {
       form.style.display = 'none';
       result = JSON.parse(result);
-      refreshExpense(div, expenseFromObject(result.expense), result.expense.rev);
+      let expenseContent = {
+        id: result.expense.id,
+        rev: result.expense.rev,
+        expense: new Expense(result.expense.name, result.expense.amount,
+          result.expense.dateCharged)
+      };
+      refreshExpense(div, expenseContent);
       document.getElementById('balance').textContent = result.balance.balance;
     }).catch(function (err) {
       console.log(err);
