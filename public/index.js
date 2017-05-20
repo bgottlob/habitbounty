@@ -142,10 +142,10 @@ function loadPage() {
    * form templates along with habit, balance, and expense info */
   let promises = [
     templatePromise(), habitPromise(), balancePromise(), expensePromise(),
-    httpPromise('habit/habitForm.handlebars', 'GET', 'text/plain'),
-    httpPromise('expense/expenseForm.handlebars', 'GET', 'text/plain'),
+    httpPromise('habitForm.handlebars', 'GET', 'text/plain'),
+    httpPromise('expenseForm.handlebars', 'GET', 'text/plain'),
     habitsLeftPromise(getDate()), chorePromise(),
-    httpPromise('chore/choreForm.handlebars', 'GET', 'text/plain'),
+    httpPromise('choreForm.handlebars', 'GET', 'text/plain'),
   ];
 
   Promise.all(promises).then(function (values) {
