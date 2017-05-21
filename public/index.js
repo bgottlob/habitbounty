@@ -116,7 +116,7 @@ function getChoreTemplate() {
   return window.choreTemplate;
 }
 function getTaskTemplate() {
-  return window.choreTemplate;
+  return window.taskTemplate;
 }
 
 function buildDatePicker() {
@@ -307,5 +307,14 @@ function documentReady() {
   let expCheckboxes = document.getElementsByClassName('chargeExpense');
   for (let i = 0; i < expCheckboxes.length; i++) {
     expCheckboxes[i].addEventListener("click", chargeExpenseCallback);
+  }
+
+  let cancelButtons = document.getElementsByClassName('cancel');
+  for (let i = 0; i < cancelButtons.length; i++) {
+    cancelButtons[i].addEventListener('click', function(event) {
+      // Prevent button from reloading page
+      event.preventDefault();
+      event.currentTarget.parentNode.parentNode.style.display = 'none';
+    });
   }
 }

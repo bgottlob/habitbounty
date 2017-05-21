@@ -52,6 +52,7 @@ function completeTaskCallback(event) {
   let cbox = event.currentTarget;
   console.log(cbox);
   let div = cbox.parentNode;
+  console.log(div);
   toggleCheckbox(cbox);
 
   let body = { id: div.dataset.id, rev: div.dataset.rev };
