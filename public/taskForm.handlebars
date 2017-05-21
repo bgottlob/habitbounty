@@ -1,0 +1,20 @@
+<div class="task" data-rev="{{rev}}" data-id="{{id}}">
+  <input class="complete" type="checkbox" {{taskIsCompleted task}}/>
+  <span>{{task.name}}</span>
+  $<span>{{task.amount}}</span>
+  {{#if task.dateCompleted}}
+    <br><span>Completed on <strong>{{task.dateCompleted}}</strong></span>
+  {{/if}}
+  <button class="button button-clear edit">Edit</button>
+  <form class="editForm" style="display:none;">
+    <fieldset>
+      <label>Name</label>
+      <input name="name" type="text" value="{{task.name}}" required>
+      <label>Reward</label>
+      <input name="amount" type="number" min="0.01" step="0.01"
+                                                    value="{{task.amount}}" required>
+      <button class="button button-outline cancel">Cancel</button>
+      <input class="button" value="Submit" type="Submit">
+    </fieldset>
+  </form>
+</div>

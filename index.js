@@ -65,7 +65,8 @@ router.routes = router.routes.concat(
   require('./routes/habitRoutes').routes,
   require('./routes/expenseRoutes').routes,
   require('./routes/choreRoutes').routes,
-  require('./routes/balanceRoutes').routes
+  require('./routes/balanceRoutes').routes,
+  require('./routes/taskRoutes').routes
 );
 http.createServer(function (request, response) {
   let body = [];
