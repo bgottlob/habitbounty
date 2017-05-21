@@ -52,6 +52,18 @@ Chore.prototype.toDoc = function() {
   return res;
 };
 
+Chore.fromDoc = function(doc) {
+  if (doc.log) {
+    doc.log = doc.log.map((curr) => {
+      return {
+        amount: curr.amount,
+        date: curr.date.dateToStr()
+      }
+    });
+  }
+  return new Chore(doc.name, doc.amount, doc.log);
+}
+
 /* Support importing into browser or node */
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
   module.exports = Chore;

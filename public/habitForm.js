@@ -92,7 +92,6 @@ function completeHabitCallback(event) {
        * reflects the truth of what is in the database */
       result = JSON.parse(result);
       document.getElementById('balance').textContent = result.balance;
-      console.log(result);
       let habitContent = {
         id: result.habit.id,
         rev: result.habit.rev,

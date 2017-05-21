@@ -9,7 +9,6 @@ function refreshTask(oldDiv, taskContent) {
 }
 
 function attachTaskListeners(div) {
-  console.log(div);
   div.querySelector('.complete')
     .addEventListener('click', completeTaskCallback);
   div.querySelector('.editForm')
@@ -50,9 +49,7 @@ function createTaskCallback(event) {
 
 function completeTaskCallback(event) {
   let cbox = event.currentTarget;
-  console.log(cbox);
   let div = cbox.parentNode;
-  console.log(div);
   toggleCheckbox(cbox);
 
   let body = { id: div.dataset.id, rev: div.dataset.rev };
