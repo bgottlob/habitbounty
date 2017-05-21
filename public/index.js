@@ -57,6 +57,19 @@ function expensePromise() {
     });
 }
 
+function taskPromise() {
+  return httpPromise('all-tasks', 'GET', 'application/json')
+    .then(function (result) {
+      return Promise.resolve(JSON.parse(result).map((entry) => {
+        return {
+          id: entry.id,
+          rev: entry.rev,
+          task: new Task(entry.name, entry.amount, entry.dateCompleted)
+        };
+      }));
+    });
+}
+
 function habitsLeftPromise(dateStr) {
   return httpPromise('habits-left/' + dateStr, 'GET', 'application/json')
     .then((result) => {return Promise.resolve(JSON.parse(result));});
@@ -71,6 +84,10 @@ Handlebars.registerHelper('isComplete', function(habit) {
 /* Checks whether expense has been charged */
 Handlebars.registerHelper('isCharged', function(expense) {
   if (expense.charged())
+    return 'checked';
+});
+Handlebars.registerHelper('taskIsCompleted', function(task) {
+  if (task.completed())
     return 'checked';
 });
 
@@ -96,6 +113,9 @@ function getHabitTemplate() {
   return window.habitTemplate;
 }
 function getChoreTemplate() {
+  return window.choreTemplate;
+}
+function getTaskTemplate() {
   return window.choreTemplate;
 }
 
@@ -141,11 +161,17 @@ function loadPage() {
   /* Fire off promises to the server to get the page, habit form, and expense
    * form templates along with habit, balance, and expense info */
   let promises = [
-    templatePromise(), habitPromise(), balancePromise(), expensePromise(),
+    templatePromise(),
+    habitPromise(),
+    balancePromise(),
+    expensePromise(),
     httpPromise('habitForm.handlebars', 'GET', 'text/plain'),
     httpPromise('expenseForm.handlebars', 'GET', 'text/plain'),
-    habitsLeftPromise(getDate()), chorePromise(),
+    habitsLeftPromise(getDate()),
+    chorePromise(),
     httpPromise('choreForm.handlebars', 'GET', 'text/plain'),
+    httpPromise('taskForm.handlebars', 'GET', 'text/plain'),
+    taskPromise()
   ];
 
   Promise.all(promises).then(function (values) {
@@ -157,16 +183,19 @@ function loadPage() {
       expenses: values[3],
       date: getDate(),
       habitsLeft: values[6],
-      chores: values[7]
+      chores: values[7],
+      tasks: values[10]
     };
 
     window.habitTemplate = Handlebars.compile(values[4]);
     window.expenseTemplate = Handlebars.compile(values[5]);
     window.choreTemplate = Handlebars.compile(values[8]);
+    window.taskTemplate = Handlebars.compile(values[9]);
 
     Handlebars.registerPartial('habitForm', values[4]);
     Handlebars.registerPartial('expenseForm', values[5]);
     Handlebars.registerPartial('choreForm', values[8]);
+    Handlebars.registerPartial('taskForm', values[9]);
 
     let html = values[0](content);
     /* Create a div with the built HTML and append it to the HTML body */
@@ -212,6 +241,19 @@ function documentReady() {
   let expenseDivs = document.getElementsByClassName('expense');
   for (let i = 0; i < expenseDivs.length; i++)
     attachExpenseListeners(expenseDivs[i]);
+
+  let taskDivs = document.getElementsByClassName('task');
+  for (let i = 0; i < taskDivs.length; i++)
+    attachTaskListeners(taskDivs[i]);
+
+  document.getElementById('createTask').addEventListener('click',
+    function(event) {
+      event.preventDefault();
+      document.getElementById('createTaskForm').style.display = '';
+    });
+
+  let createTaskForm = document.getElementById('createTaskForm');
+  createTaskForm.addEventListener('submit', createTaskCallback);
 
   document.getElementById('createHabit').addEventListener('click',
     function(event) {

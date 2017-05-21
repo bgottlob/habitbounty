@@ -4,6 +4,7 @@ const Habit = require('./sharedLibs/habit.js');
 const Balance = require('./sharedLibs/balance.js');
 const Expense = require('./sharedLibs/expense.js');
 const Chore = require('./sharedLibs/chore.js');
+const Task = require('./sharedLibs/task.js');
 
 let url, dbName;
 if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';
@@ -100,6 +101,19 @@ loader.createHabit = function(habit) {
   }
 };
 
+loader.createTask = function(task) {
+  if (!(task instanceof Task)) {
+    return Promise.reject({
+      error: 'bad_data_type',
+      param: task,
+      message: 'The parameter is not an instance of the Task prototype'
+    });
+  }
+  else {
+    return promisify(db.insert, [task.toDoc()]);
+  }
+};
+
 loader.createExpense = function(expense) {
   if (!(expense instanceof Expense)) {
     return Promise.reject({
@@ -180,6 +194,14 @@ loader.getChore = function(id) {
     });
 }
 
+loader.getTask = function(id) {
+  return promisify(db.viewWithList, ['queries', 'all_tasks', 'stringify_dates',
+    { key: id, include_docs: true }]).then(function (result) {
+      if (result[0]) return Promise.resolve(result[0]);
+      else return Promise.reject('task not found');
+    });
+}
+
 loader.getExpense = function(id) {
   return promisify(db.viewWithList, ['queries', 'all_expenses', 'stringify_dates',
     { key: id, include_docs: true }]).then(function (result) {
@@ -194,6 +216,11 @@ loader.allHabits = function() {
 
 loader.allChores = function() {
   return promisify(db.viewWithList,['queries', 'all_chores',
+    'stringify_dates', { include_docs: true }]);
+};
+
+loader.allTasks = function() {
+  return promisify(db.viewWithList,['queries', 'all_tasks',
     'stringify_dates', { include_docs: true }]);
 };
 
@@ -265,6 +292,11 @@ const mapAllExpenses = function(doc) {
     emit(doc._id, null);
 };
 
+const mapAllTasks = function(doc) {
+  if (doc.type === 'task')
+    emit(doc._id, null);
+};
+
 const mapBalance = function(doc) {
   if (doc.type === 'habit' || doc.type === 'chore') {
     for (var i = 0; i < doc.log.length; i++)
@@ -274,6 +306,8 @@ const mapBalance = function(doc) {
       emit(doc._id, doc.log[i]);
   } else if (doc.type === 'expense') {
     if (doc.dateCharged) emit(doc._id, -(doc.amount));
+  } else if (doc.type === 'task') {
+    if (doc.dateCompleted) emit(doc._id, doc.amount);
   }
 };
 
@@ -307,6 +341,12 @@ const stringifyDates = function (head, req) {
       sendValue.amount = row.doc.amount;
       if (row.doc.dateCharged) {
         sendValue.dateCharged = toStr(row.doc.dateCharged);
+      }
+    } else if (row.doc.type === 'task') {
+      sendValue.name = row.doc.name;
+      sendValue.amount = row.doc.amount;
+      if (row.doc.dateCompleted) {
+        sendValue.dateCompleted = toStr(row.doc.dateCompleted);
       }
     }
     final.push(sendValue);
@@ -344,7 +384,6 @@ const validation = function (newDoc, oldDoc, userCtx) {
       'date array provided does not represent a valid date');
   }
 
-
   function nameAssert(name) {
     var maxNameLen = 140;
     assert(name.length <= maxNameLen,
@@ -378,6 +417,13 @@ const validation = function (newDoc, oldDoc, userCtx) {
     amountAssert(newDoc.amount);
     if (newDoc.dateCharged) dateAssert(newDoc.dateCharged);
     else assert(newDoc.dateCharged === null);
+  } else if (newDoc.type === 'task') {
+    existAssert([newDoc.name, newDoc.amount],
+      'every task must have a name and an amount');
+    nameAssert(newDoc.name);
+    amountAssert(newDoc.amount);
+    if (newDoc.dateCompleted) dateAssert(newDoc.dateCompleted);
+    else assert(newDoc.dateCompleted === null);
   } else if (newDoc.type === 'balance') {
     assert([newDoc.log], 'every balance doc must have a log');
     for (var i = 0; i < newDoc.log.length; i++)
@@ -405,6 +451,9 @@ let designDoc = {
     },
     all_chores: {
       map: mapAllChores.toString()
+    },
+    all_tasks: {
+      map: mapAllTasks.toString()
     },
     habits_by_archived: {
       map: mapHabitsByArchived.toString(),
