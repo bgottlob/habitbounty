@@ -90,6 +90,10 @@ Handlebars.registerHelper('taskIsCompleted', function(task) {
   if (task.completed())
     return 'checked';
 });
+Handlebars.registerHelper('choreIsComplete', function(chore) {
+  if (chore.isComplete(getDate()))
+    return 'checked';
+});
 
 /* Using getters and setters for the date as an abstraction layer, since
  * using window.date may change */
@@ -241,6 +245,10 @@ function documentReady() {
   let expenseDivs = document.getElementsByClassName('expense');
   for (let i = 0; i < expenseDivs.length; i++)
     attachExpenseListeners(expenseDivs[i]);
+
+  let choreDivs = document.getElementsByClassName('chore');
+  for (let i = 0; i < choreDivs.length; i++)
+    attachChoreListeners(choreDivs[i]);
 
   let taskDivs = document.getElementsByClassName('task');
   for (let i = 0; i < taskDivs.length; i++)
