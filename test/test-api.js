@@ -5,6 +5,12 @@ let loader = require('../modules/dataLoader.js');
 var hbHost = 'localhost';
 var hbPort = 8080
 
+/**
+ * The callback called when an HTTP request returns to parse the JSON result
+ * @callback requestCallback
+ * @param {function} resolve a resolution callback for creating a promise
+ * @param {function} reject a rejection callback for creating a promise
+ */
 function httpPromiseCB(resolve, reject) {
   return function (res) {
     res.setEncoding('utf8');
