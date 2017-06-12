@@ -3,6 +3,14 @@
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
   require('./sharedLib.js');
 
+/**
+ * Creates a new Habit object
+ * @param {string} name the name of the new habit
+ * @param {number} amount the amount of money rewarded to the user when the
+ *   habit is completed
+ * @param {array} log an array of completion date string and amount pairs to
+ *   represent each day the habit was completed -- optional
+ */
 function Habit(name, amount, log) {
   if (!name) this.name = 'No Name Set';
   else this.name = String(name);

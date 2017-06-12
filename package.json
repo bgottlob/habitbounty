@@ -19,6 +19,6 @@
     "nano": "^6.2.0"
   },
   "devDependencies": {
-    "mocha": "^3.2.0"
+    "mocha": "^3.4.2"
   }
 }
