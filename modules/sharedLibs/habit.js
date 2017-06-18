@@ -3,24 +3,40 @@
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
   require('./sharedLib.js');
 
+
 /**
  * Creates a new Habit object
  * @param {string} name the name of the new habit
  * @param {number} amount the amount of money rewarded to the user when the
  *   habit is completed
- * @param {array} log an array of completion date string and amount pairs to
+ * @param {Array.<Habit~LogEntry>} log an array of completion date string and amount pairs to
  *   represent each day the habit was completed -- optional
+ * @returns {Habit} the newly created habit
  */
 function Habit(name, amount, log) {
-  if (!name) this.name = 'No Name Set';
-  else this.name = String(name);
+  if (typeof name !== 'string')
+    throw new Error('name parameter must be a valid string');
+  else this.name = name;
 
-  this.amount = Number(amount);
-  if (isNaN(this.amount)) this.amount = 0;
+  if (typeof amount !== 'number')
+    throw new Error('amount must be a valid number');
+  else
+    this.amount = amount;
 
-  this.log = log;
-  if (!log) this.log = [];
+  if (typeof log === 'undefined')
+    this.log = [];
+  else if (typeof log !== 'array')
+    throw new Error('log must be a valid array');
+  else
+    this.log = log;
 }
+
+/**
+ * For storing amount and date data for habit completion
+ * @typedef {Object} Habit~LogEntry
+ * @property {string} date the date of the completion
+ * @property {number} amount amount added to balance for completion
+ */
 
 /* Checks whether the habit was completed on the day given by the
  * date array */
