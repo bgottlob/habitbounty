@@ -4,6 +4,7 @@ const Habit = require('../../modules/sharedLibs/habit');
 describe('Habit', function() {
 
   describe('constructor', function() {
+    // TODO: Add error types
     it('should throw invalid name errors', function() {
       assert.throws(() => new Habit(2, 2));
       assert.throws(() => new Habit(0, 2));
@@ -20,6 +21,10 @@ describe('Habit', function() {
       assert.throws(() => new Habit('Test', '2'));
       assert.throws(() => new Habit('Test', '2.4'));
       assert.throws(() => new Habit('Test', '2.41'));
+      assert.throws(() => new Habit('Test', 2.411));
+      assert.throws(() => new Habit('Test', 2.001));
+      assert.throws(() => new Habit('Test', 2.0000000001));
+      assert.throws(() => new Habit('Test', 2.0100000001));
       assert.throws(() => new Habit('Test', 'Test'));
       assert.throws(() => new Habit('Test', true));
       assert.throws(() => new Habit('Test', false));
@@ -31,18 +36,24 @@ describe('Habit', function() {
       assert.throws(() => new Habit('Test', {amount: 2.45}));
     });
 
-    // TODO: implement this stuff in habit to pass these tests
     it('should throw an invalid object error in the log', function() {
       assert.throws(() => new Habit('Test', 2, [{ amount: 2 }]));
-      assert.throws(() => new Habit('Test', 2, [{ date: '03/01/2017' } ]));
+      assert.throws(() => new Habit('Test', 2, [{ date: '2017-01-01' } ]));
       assert.throws(() => new Habit('Test', 2, [{
-        date: '03/01/2017', reward: 2
+        date: '2017-03-01', reward: 2
       }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-03-01', extra: 'hi'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [
+        { amount: 2, date: '2017-03-02' },
+        { amount: 2, date: '2017-03-03', extra: 'hi' },
+        { amount: 2, date: '2017-03-01' }
+      ]));
     });
 
     it('should throw an invalid log error', function() {
       assert.throws(() => new Habit('Test', 2, {}));
-      assert.throws(() => new Habit('Test', 2, undefined));
       assert.throws(() => new Habit('Test', 2, null));
       assert.throws(() => new Habit('Test', 2, true));
       assert.throws(() => new Habit('Test', 2, false));
@@ -52,13 +63,111 @@ describe('Habit', function() {
     });
 
     it('should throw an invalid date error in the log', function() {
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '02/02/2017'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: 'Jun 15 2017'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: 'Feb 15 2017'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-13-01'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-02-29'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-04-31'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-04-00'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-01-00'
+      }]));
+      /* TODO: is year 0000 a thing?
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '0000-12-01'
+      }]));
+      */
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-01-1'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-1-01'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '2017-1-1'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '17-01-01'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2, date: '95-01-01'
+      }]));
     });
 
     it('should throw an invalid number error in the log', function() {
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2.111111, date: '2017-01-29'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: 2.001, date: '2017-01-29'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: '2.00', date: '2017-01-29'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: '2.0', date: '2017-01-29'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: null, date: '2017-01-29'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: undefined, date: '2017-01-29'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [{
+        amount: NaN, date: '2017-01-29'
+      }]));
+      assert.throws(() => new Habit('Test', 2, [
+        { amount: 2.20, date: '2017-01-29' },
+        { amount: 3.21, date: '2017-01-01' },
+        { amount: 3.001, date: '2017-01-02' }
+      ]));
+      assert.throws(() => new Habit('Test', 2, [
+        { amount: 2.20, date: '2017-01-29' },
+        { amount: '3', date: '2017-01-02' },
+        { amount: 3.21, date: '2017-01-01' }
+      ]));
     });
 
     // TODO: Need a bunch of positive tests for logs
     // An empty log should be a positive test
+    it('should create a habit with the given log', function() {
+      assert.doesNotThrow(() => new Habit('Test', 2, []));
+      assert.doesNotThrow(() => new Habit('Test', 2, [
+        { amount: 2.20, date: '2017-01-29' },
+        { amount: 3, date: '2017-01-02' },
+        { amount: 3.21, date: '2017-01-01' }
+      ]));
+      assert.doesNotThrow(() => new Habit('Test', 2.01, [
+        { amount: 2.20, date: '2017-01-29' },
+        { amount: 3.21, date: '2017-01-01' }
+      ]));
+      assert.doesNotThrow(() => new Habit('Test', 2.01, []));
+      assert.doesNotThrow(() => new Habit('Test', 2, [
+        { amount: 3.1, date: '2017-01-02' },
+        { amount: 2.20, date: '2017-01-29' },
+        { amount: 3.21, date: '2017-01-01' }
+      ]));
+    });
+
+    // TODO: More tests
+    //it('should eliminate duplicate date entries in the log only if they have the same reward')
+    //it('should sort the log by date?')
+    //it('should accept a leap year february date')
 
   });
 
