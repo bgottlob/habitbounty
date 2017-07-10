@@ -3,8 +3,13 @@
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
   require('./sharedLib.js');
 
-// Returns an error if there is the date string is invalid, otherwise returns
-// null
+/**
+ * Checks whether a string represents a real date in ISO 8601 format.
+ *
+ * @param {string} dateStr the string to be validated
+ * @returns {?error} returns an error if the date string is invalid, otherwise
+ *   returns null
+ */
 function validateDateStr(dateStr) {
   let match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (match) {
@@ -27,20 +32,38 @@ function validateDateStr(dateStr) {
   }
 }
 
+/**
+ * Checks whether a number represents a number with two or fewer decimal
+ * places in precision.
+ *
+ * @param {number} num the number to be validated
+ * @returns {?error} returns an error if the number is not valid or more precise
+ *   than two decimal places, otherwise returns null
+ */
 // TODO: The error messaging could be smarter here
-// Return an error if there is one
 function validateNumber(num) {
   var digsAfterDec = 2; // Precision to enforce
   if (isNaN(num) || typeof num !== 'number')
     return new Error('not a valid number');
-  else if (num.toFixed(digsAfterDec) != num) // toFixed returns string, need != instead of !==
+ // toFixed returns string, need != instead of !==
+  else if (num.toFixed(digsAfterDec) != num)
     return new Error('amount ' + num + ' must be no more precise than ' +
       digsAfterDec + ' digits after the decimal');
   else return null;
 }
 
-// Return an error if there is one
-// TODO: Check for extra properties!
+/**
+ * A single entry in the habit log. Represents an instance when a habit was
+ * completed.
+ * @typedef LogEntry
+ * @type {object}
+ * @property {string} date - the date the habit was completed
+ * @property {number} amount - the amount rewarded for completion of the habit
+ */
+
+/**
+ * Validate an entry in the log
+ */
 function validateLogEntry(entry) {
   let err = null;
   if (err = validateNumber(entry.amount)) return err;
@@ -60,7 +83,7 @@ function validateLogEntry(entry) {
  * @param {string} name the name of the new habit
  * @param {number} amount the amount of money rewarded to the user when the
  *   habit is completed
- * @param {Array.<Habit~LogEntry>} log an array of completion date string and amount pairs to
+ * @param {Array.<LogEntry>} log an array of completion date string and amount pairs to
  *   represent each day the habit was completed -- optional
  * @returns {Habit} the newly created habit
  */
@@ -90,13 +113,6 @@ function Habit(name, amount, log) {
   }
 
 }
-
-/**
- * For storing amount and date data for habit completion
- * @typedef {Object} Habit~LogEntry
- * @property {string} date the date of the completion
- * @property {number} amount amount added to balance for completion
- */
 
 /* Checks whether the habit was completed on the day given by the
  * date array */

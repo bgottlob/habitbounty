@@ -30,6 +30,7 @@ describe('Habit', function() {
       assert.throws(() => new Habit('Test', false));
       assert.throws(() => new Habit('Test', null));
       assert.throws(() => new Habit('Test', undefined));
+      assert.throws(() => new Habit('Test'));
       assert.throws(() => new Habit('Test', NaN));
       assert.throws(() => new Habit('Test', [2]));
       assert.throws(() => new Habit('Test', [2, 3.4]));
@@ -143,25 +144,65 @@ describe('Habit', function() {
       ]));
     });
 
-    // TODO: Need a bunch of positive tests for logs
-    // An empty log should be a positive test
+    it('shoud create a habit without a log', function() {
+      let habit = new Habit('Super cool habit', 1.54);
+      assert.strictEqual(habit.name, 'Super cool habit');
+      assert.strictEqual(habit.amount, 1.54);
+      assert.deepStrictEqual(habit.log, []);
+
+      habit = new Habit('Another cool habit', 2.10);
+      assert.strictEqual(habit.name, 'Another cool habit');
+      assert.strictEqual(habit.amount, 2.10);
+      assert.deepStrictEqual(habit.log, []);
+
+      habit = new Habit('Take a shower', 6);
+      assert.strictEqual(habit.name, 'Take a shower');
+      assert.strictEqual(habit.amount, 6);
+      assert.deepStrictEqual(habit.log, []);
+    });
+
     it('should create a habit with the given log', function() {
-      assert.doesNotThrow(() => new Habit('Test', 2, []));
-      assert.doesNotThrow(() => new Habit('Test', 2, [
+      let habit = new Habit('First Test', 2, []);
+      assert.strictEqual(habit.name, 'First Test');
+      assert.strictEqual(habit.amount, 2);
+      assert.deepStrictEqual(habit.log, []);
+
+      habit = new Habit('Second Test', 3, [
         { amount: 2.20, date: '2017-01-29' },
         { amount: 3, date: '2017-01-02' },
         { amount: 3.21, date: '2017-01-01' }
-      ]));
-      assert.doesNotThrow(() => new Habit('Test', 2.01, [
+      ]);
+      assert.strictEqual(habit.name, 'Second Test');
+      assert.strictEqual(habit.amount, 3);
+      assert.deepStrictEqual(habit.log, [
+        { amount: 2.20, date: '2017-01-29' },
+        { amount: 3, date: '2017-01-02' },
+        { amount: 3.21, date: '2017-01-01' }
+      ]);
+
+      habit = new Habit('Third Test', 2.01, [
         { amount: 2.20, date: '2017-01-29' },
         { amount: 3.21, date: '2017-01-01' }
-      ]));
-      assert.doesNotThrow(() => new Habit('Test', 2.01, []));
-      assert.doesNotThrow(() => new Habit('Test', 2, [
+      ]);
+      assert.strictEqual(habit.name, 'Third Test');
+      assert.strictEqual(habit.amount, 2.01);
+      assert.deepStrictEqual(habit.log, [
+        { amount: 2.20, date: '2017-01-29' },
+        { amount: 3.21, date: '2017-01-01' }
+      ]);
+
+      habit = new Habit('Fourth Test', 5.1, [
         { amount: 3.1, date: '2017-01-02' },
         { amount: 2.20, date: '2017-01-29' },
         { amount: 3.21, date: '2017-01-01' }
-      ]));
+      ]);
+      assert.strictEqual(habit.name, 'Fourth Test');
+      assert.strictEqual(habit.amount, 5.1);
+      assert.deepStrictEqual(habit.log, [
+        { amount: 3.1, date: '2017-01-02' },
+        { amount: 2.20, date: '2017-01-29' },
+        { amount: 3.21, date: '2017-01-01' }
+      ]);
     });
 
     // TODO: More tests
@@ -178,7 +219,6 @@ describe('Habit', function() {
     beforeEach(function() {
       habit = new Habit('Test Habit', 2.15)
     });
-
 
     it('should complete the habit with the given dates', function() {
       habit.complete('03-15-2017');
