@@ -114,14 +114,28 @@ function Habit(name, amount, log) {
 
 }
 
-/* Checks whether the habit was completed on the day given by the
- * date array */
+/**
+ * Checks whether the habit was completed on the date given by the date string.
+ *
+ * @param {string} dateStr a string of the date to be checked for completion
+ * @returns {boolean} indicates whether habit was completed on the given date
+ *   or not
+ */
 Habit.prototype.isComplete = function(dateStr) {
+  let err = validateDateStr(dateStr);
+  if (err) throw err;
   return this.log.reduce((acc, current) => {
     return acc || current.date === dateStr;
   }, false);
 };
 
+/**
+ * Marks the habit to be completed on a given date by adding a log entry to
+ * the Habit object's log. This has no effect if the habit has already been
+ * completed on the given date.
+ *
+ * @param {string} dateStr a string of the date the habit is to be completed on
+ */
 Habit.prototype.complete = function(dateStr) {
   if (!this.isComplete(dateStr))
     this.log.push({
@@ -130,7 +144,17 @@ Habit.prototype.complete = function(dateStr) {
     });
 };
 
+/**
+ * Removes a completion entry from the Habit object's log on the given date.
+ * This has the opposite effect as Habit#complete. This has no effect if the
+ * habit was not completed on the given date.
+ *
+ * @param {string} dateStr a string of the date the habit should not be
+ *   completed
+ */
 Habit.prototype.uncomplete = function(dateStr) {
+  let err = validateDateStr(dateStr);
+  if (err) throw err;
   this.log = this.log.filter(function (fromLog) {
     return !(fromLog.date === dateStr);
   });
