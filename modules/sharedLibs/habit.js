@@ -7,7 +7,7 @@ if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
  * Checks whether a string represents a real date in ISO 8601 format.
  *
  * @param {string} dateStr the string to be validated
- * @returns {?error} returns an error if the date string is invalid, otherwise
+ * @returns {?error} an error if the date string is invalid, otherwise
  *   returns null
  */
 function validateDateStr(dateStr) {
@@ -37,7 +37,7 @@ function validateDateStr(dateStr) {
  * places in precision.
  *
  * @param {number} num the number to be validated
- * @returns {?error} returns an error if the number is not valid or more precise
+ * @returns {?error} an error if the number is not valid or more precise
  *   than two decimal places, otherwise returns null
  */
 // TODO: The error messaging could be smarter here
@@ -62,7 +62,11 @@ function validateNumber(num) {
  */
 
 /**
- * Validate an entry in the log
+ * Validate a LogEntry object. Ensure it contains a valid date, a valid amount,
+ * and no extraneous elements.
+ *
+ * @param {LogEntry} entry the log entry to be validated
+ * @returns {?error} an error if the log entry is invalid, null if not
  */
 function validateLogEntry(entry) {
   let err = null;
@@ -83,7 +87,7 @@ function validateLogEntry(entry) {
  * @param {string} name the name of the new habit
  * @param {number} amount the amount of money rewarded to the user when the
  *   habit is completed
- * @param {Array.<LogEntry>} log an array of completion date string and amount pairs to
+ * @param {Array<LogEntry>} log an array of completion date string and amount pairs to
  *   represent each day the habit was completed -- optional
  * @returns {Habit} the newly created habit
  */
@@ -160,8 +164,13 @@ Habit.prototype.uncomplete = function(dateStr) {
   });
 };
 
-/* Returns an object that is ready to be placed into the db as a document,
- * or used as a delta for updating an existing document */
+/**
+ * Returns an object representation of a habit that is ready to be placed into
+ * the db as a document or used as a delta for updating an existing document.
+ *
+ * @returns {object} the habit data encoded into an object friendly to the
+ *   CouchDB database
+ */
 Habit.prototype.toDoc = function() {
   let res = {
     name: this.name,
@@ -177,6 +186,13 @@ Habit.prototype.toDoc = function() {
   return res;
 };
 
+/**
+ * Creates a habit object from a habit document that was present in the CouchDB
+ * database.
+ * TODO: Throw error if doc.type isn't "habit"?
+ * @param {object} doc the CouchDB doc to be converted to a Habit
+ * @returns {Habit} the habit doc populated with the data from the doc
+ */
 Habit.fromDoc = function(doc) {
   if (doc.log) {
     doc.log = doc.log.map((curr) => {

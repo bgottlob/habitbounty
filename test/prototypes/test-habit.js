@@ -445,6 +445,74 @@ describe('Habit', function() {
     });
   });
 
+  describe('database interaction helpers', function() {
+    let habitOne, habitTwo, habitThree;
+    let docOne, docTwo, docThree;
+    beforeEach(function() {
+      habitOne = new Habit('First Habit', 1);
+      docOne = {
+        name: 'First Habit',
+        amount: 1,
+        log: [],
+        type: 'habit'
+      };
+
+      habitTwo = new Habit('Second Habit', 2.54, [
+        { amount: 2.54, date: '2017-01-01' },
+        { amount: 2.54, date: '2016-12-31' },
+        { amount: 2.54, date: '2017-03-15' },
+        { amount: 2.54, date: '2017-11-25' }
+      ]);
+      docTwo = {
+        name: 'Second Habit',
+        amount: 2.54,
+        log: [
+          { amount: 2.54, date: [2017, 1, 1] },
+          { amount: 2.54, date: [2016, 12, 31] },
+          { amount: 2.54, date: [2017, 3, 15] },
+          { amount: 2.54, date: [2017, 11, 25] }
+        ],
+        type: 'habit'
+      };
+
+      habitThree = new Habit('Third Habit', 2, [
+        { amount: 2.4, date: '2017-04-01' },
+        { amount: 2.87, date: '2017-04-02' },
+        { amount: 3, date: '2017-03-31' },
+        { amount: 1, date: '2016-02-29' }
+      ]);
+      docThree = {
+        name: 'Third Habit',
+        amount: 2,
+        log: [
+          { amount: 2.4, date: [2017, 4, 1] },
+          { amount: 2.87, date: [2017, 4, 2] },
+          { amount: 3, date: [2017, 3, 31] },
+          { amount: 1, date: [2016, 2, 29] }
+        ],
+        type: 'habit'
+      };
+    });
+    afterEach(function() {
+      habitOne = habitTwo = habitThree = null;
+      docOne = docTwo = docThree = null;
+    });
+
+    describe('#toDoc()', function() {
+      it('should convert habits to CouchDB friendly docs', function() {
+        assert.deepStrictEqual(habitOne.toDoc(), docOne);
+        assert.deepStrictEqual(habitTwo.toDoc(), docTwo);
+        assert.deepStrictEqual(habitThree.toDoc(), docThree);
+      });
+    });
+
+    describe('#fromDoc()', function() {
+      it('should convert CouchDB docs into habits', function() {
+        assert.deepStrictEqual(Habit.fromDoc(docOne), habitOne);
+        assert.deepStrictEqual(Habit.fromDoc(docTwo), habitTwo);
+        assert.deepStrictEqual(Habit.fromDoc(docThree), habitThree);
+      });
+    });
+  });
+
 });
-//TODO: Stuff to think about -- an invalid amount can be set if using habit.amount = 1.111111
-//
