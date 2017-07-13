@@ -57,8 +57,8 @@ function validateNumber(num) {
  * completed.
  * @typedef LogEntry
  * @type {object}
- * @property {string} date - the date the habit was completed
- * @property {number} amount - the amount rewarded for completion of the habit
+ * @property {string} date the date the habit was completed
+ * @property {number} amount the amount rewarded for completion of the habit
  */
 
 /**
@@ -84,11 +84,12 @@ function validateLogEntry(entry) {
 
 /**
  * Creates a new Habit object
+ * @constructs Habit
  * @param {string} name the name of the new habit
  * @param {number} amount the amount of money rewarded to the user when the
  *   habit is completed
- * @param {Array<LogEntry>} log an array of completion date string and amount pairs to
- *   represent each day the habit was completed -- optional
+ * @param {Array<LogEntry>} [log=[]] an array of completion date string and amount
+ *   pairs to represent each day the habit was completed
  * @returns {Habit} the newly created habit
  */
 function Habit(name, amount, log) {
@@ -122,8 +123,8 @@ function Habit(name, amount, log) {
  * Checks whether the habit was completed on the date given by the date string.
  *
  * @param {string} dateStr a string of the date to be checked for completion
- * @returns {boolean} indicates whether habit was completed on the given date
- *   or not
+ * @returns {boolean} true if habit was completed on the given date, false if
+ *   not
  */
 Habit.prototype.isComplete = function(dateStr) {
   let err = validateDateStr(dateStr);
@@ -189,10 +190,10 @@ Habit.prototype.toDoc = function() {
 /**
  * Creates a habit object from a habit document that was present in the CouchDB
  * database.
- * TODO: Throw error if doc.type isn't "habit"?
  * @param {object} doc the CouchDB doc to be converted to a Habit
  * @returns {Habit} the habit doc populated with the data from the doc
  */
+// TODO: Throw error if doc.type isn't "habit"?
 Habit.fromDoc = function(doc) {
   if (doc.log) {
     doc.log = doc.log.map((curr) => {
