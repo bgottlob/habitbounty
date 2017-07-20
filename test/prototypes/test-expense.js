@@ -144,7 +144,7 @@ describe('Habit', function() {
       ]));
     });
 
-    it('should create a habit without a log', function() {
+    it('shoud create a habit without a log', function() {
       let habit = new Habit('Super cool habit', 1.54);
       assert.strictEqual(habit.name, 'Super cool habit');
       assert.strictEqual(habit.amount, 1.54);
