@@ -1,166 +1,79 @@
 const assert = require('assert');
-const Habit = require('../../modules/sharedLibs/habit');
+const Expense = require('../../modules/sharedLibs/expense');
 
-describe('Habit', function() {
+describe('Expense', function() {
 
   describe('constructor', function() {
     // TODO: Add error types
     it('should throw invalid name errors', function() {
-      assert.throws(() => new Habit(2, 2));
-      assert.throws(() => new Habit(0, 2));
-      assert.throws(() => new Habit(false, 2));
-      assert.throws(() => new Habit(true, 2));
-      assert.throws(() => new Habit(['habit name'], 2));
-      assert.throws(() => new Habit(undefined, 2));
-      assert.throws(() => new Habit(null, 2));
-      assert.throws(() => new Habit(NaN, 2));
-      assert.throws(() => new Habit({name:'habit name'}, 2));
+      assert.throws(() => new Expense(2, 2));
+      assert.throws(() => new Expense(0, 2));
+      assert.throws(() => new Expense(false, 2));
+      assert.throws(() => new Expense(true, 2));
+      assert.throws(() => new Expense(['name'], 2));
+      assert.throws(() => new Expense(undefined, 2));
+      assert.throws(() => new Expense(null, 2));
+      assert.throws(() => new Expense(NaN, 2));
+      assert.throws(() => new Expense({name:'name'}, 2));
     });
 
     it('should throw an invalid number error', function() {
-      assert.throws(() => new Habit('Test', '2'));
-      assert.throws(() => new Habit('Test', '2.4'));
-      assert.throws(() => new Habit('Test', '2.41'));
-      assert.throws(() => new Habit('Test', 2.411));
-      assert.throws(() => new Habit('Test', 2.001));
-      assert.throws(() => new Habit('Test', 2.0000000001));
-      assert.throws(() => new Habit('Test', 2.0100000001));
-      assert.throws(() => new Habit('Test', 'Test'));
-      assert.throws(() => new Habit('Test', true));
-      assert.throws(() => new Habit('Test', false));
-      assert.throws(() => new Habit('Test', null));
-      assert.throws(() => new Habit('Test', undefined));
-      assert.throws(() => new Habit('Test'));
-      assert.throws(() => new Habit('Test', NaN));
-      assert.throws(() => new Habit('Test', [2]));
-      assert.throws(() => new Habit('Test', [2, 3.4]));
-      assert.throws(() => new Habit('Test', {amount: 2.45}));
-    });
-
-    it('should throw an invalid object error in the log', function() {
-      assert.throws(() => new Habit('Test', 2, [{ amount: 2 }]));
-      assert.throws(() => new Habit('Test', 2, [{ date: '2017-01-01' } ]));
-      assert.throws(() => new Habit('Test', 2, [{
-        date: '2017-03-01', reward: 2
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-03-01', extra: 'hi'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [
-        { amount: 2, date: '2017-03-02' },
-        { amount: 2, date: '2017-03-03', extra: 'hi' },
-        { amount: 2, date: '2017-03-01' }
-      ]));
-    });
-
-    it('should throw an invalid log error', function() {
-      assert.throws(() => new Habit('Test', 2, {}));
-      assert.throws(() => new Habit('Test', 2, null));
-      assert.throws(() => new Habit('Test', 2, true));
-      assert.throws(() => new Habit('Test', 2, false));
-      assert.throws(() => new Habit('Test', 2, 'Log'));
-      assert.throws(() => new Habit('Test', 2, 2));
-      assert.throws(() => new Habit('Test', 2, NaN));
+      assert.throws(() => new Expense('Test', '2'));
+      assert.throws(() => new Expense('Test', '2.4'));
+      assert.throws(() => new Expense('Test', '2.41'));
+      assert.throws(() => new Expense('Test', 2.411));
+      assert.throws(() => new Expense('Test', 2.001));
+      assert.throws(() => new Expense('Test', 2.0000000001));
+      assert.throws(() => new Expense('Test', 2.0100000001));
+      assert.throws(() => new Expense('Test', 'Test'));
+      assert.throws(() => new Expense('Test', true));
+      assert.throws(() => new Expense('Test', false));
+      assert.throws(() => new Expense('Test', null));
+      assert.throws(() => new Expense('Test', undefined));
+      assert.throws(() => new Expense('Test'));
+      assert.throws(() => new Expense('Test', NaN));
+      assert.throws(() => new Expense('Test', [2]));
+      assert.throws(() => new Expense('Test', [2, 3.4]));
+      assert.throws(() => new Expense('Test', {amount: 2.45}));
     });
 
     it('should throw an invalid date error in the log', function() {
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '02/02/2017'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: 'Jun 15 2017'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: 'Feb 15 2017'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-13-01'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-02-29'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-04-31'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-04-00'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-01-00'
-      }]));
+      assert.throws(() => new Expense('Test', 2, '02/02/2017'));
+      assert.throws(() => new Expense('Test', 2, 'Jun 15 2017'));
+      assert.throws(() => new Expense('Test', 2, 'Feb 15 2017'));
+      assert.throws(() => new Expense('Test', 2, '2017-13-01'));
+      assert.throws(() => new Expense('Test', 2, '2017-02-29'));
+      assert.throws(() => new Expense('Test', 2, '2017-04-31'));
+      assert.throws(() => new Expense('Test', 2, '2017-04-00'));
+      assert.throws(() => new Expense('Test', 2, '2017-01-00'));
       /* TODO: is year 0000 a thing?
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '0000-12-01'
-      }]));
+      assert.throws(() => new Expense('Test', 2, '0000-12-01'));
       */
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-01-1'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-1-01'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '2017-1-1'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '17-01-01'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2, date: '95-01-01'
-      }]));
+      assert.throws(() => new Expense('Test', 2, '2017-01-1'));
+      assert.throws(() => new Expense('Test', 2, '2017-1-01'));
+      assert.throws(() => new Expense('Test', 2, '2017-1-1'));
+      assert.throws(() => new Expense('Test', 2, '17-01-01'));
+      assert.throws(() => new Expense('Test', 2, '95-01-01'));
     });
 
-    it('should throw an invalid number error in the log', function() {
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2.111111, date: '2017-01-29'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: 2.001, date: '2017-01-29'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: '2.00', date: '2017-01-29'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: '2.0', date: '2017-01-29'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: null, date: '2017-01-29'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: undefined, date: '2017-01-29'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [{
-        amount: NaN, date: '2017-01-29'
-      }]));
-      assert.throws(() => new Habit('Test', 2, [
-        { amount: 2.20, date: '2017-01-29' },
-        { amount: 3.21, date: '2017-01-01' },
-        { amount: 3.001, date: '2017-01-02' }
-      ]));
-      assert.throws(() => new Habit('Test', 2, [
-        { amount: 2.20, date: '2017-01-29' },
-        { amount: '3', date: '2017-01-02' },
-        { amount: 3.21, date: '2017-01-01' }
-      ]));
+    it('should create a expense that has not been charged yet', function() {
+      let expense = new Expense('Super cool expense', 1.54);
+      assert.strictEqual(expense.name, 'Super cool expense');
+      assert.strictEqual(expense.amount, 1.54);
+      assert.strictEqual(expense.dateCharged, null);
+
+      expense = new Expense('Another cool expense', 2.10);
+      assert.strictEqual(expense.name, 'Another cool expense');
+      assert.strictEqual(expense.amount, 2.10);
+      assert.strictEqual(expense.dateCharged, null);
+
+      expense = new Expense('Take a shower', 6);
+      assert.strictEqual(expense.name, 'Take a shower');
+      assert.strictEqual(expense.amount, 6);
+      assert.strictEqual(expense.dateCharged, null);
     });
 
-    it('shoud create a habit without a log', function() {
-      let habit = new Habit('Super cool habit', 1.54);
-      assert.strictEqual(habit.name, 'Super cool habit');
-      assert.strictEqual(habit.amount, 1.54);
-      assert.deepStrictEqual(habit.log, []);
-
-      habit = new Habit('Another cool habit', 2.10);
-      assert.strictEqual(habit.name, 'Another cool habit');
-      assert.strictEqual(habit.amount, 2.10);
-      assert.deepStrictEqual(habit.log, []);
-
-      habit = new Habit('Take a shower', 6);
-      assert.strictEqual(habit.name, 'Take a shower');
-      assert.strictEqual(habit.amount, 6);
-      assert.deepStrictEqual(habit.log, []);
-    });
-
+    /*
     it('should create a habit with the given log', function() {
       let habit = new Habit('First Test', 2, []);
       assert.strictEqual(habit.name, 'First Test');
@@ -204,6 +117,7 @@ describe('Habit', function() {
         { amount: 3.21, date: '2017-01-01' }
       ]);
     });
+    */
 
     // TODO: More tests
     //it('should eliminate duplicate date entries in the log only if they have the same reward')
@@ -212,6 +126,7 @@ describe('Habit', function() {
 
   });
 
+  /*
   describe('#complete()', function() {
     let habit;
     beforeEach(function() {
@@ -286,9 +201,8 @@ describe('Habit', function() {
       assert.throws(() => habit.complete('2017-04-31'));
       assert.throws(() => habit.complete('2017-04-00'));
       assert.throws(() => habit.complete('2017-01-00'));
-      /* TODO: Find out if year 0000 is a thing
+      // TODO: Find out if year 0000 is a thing
       assert.throws(() => habit.complete('0000-12-01'));
-      */
       assert.throws(() => habit.complete('2017-01-1'));
       assert.throws(() => habit.complete('2017-1-01'));
       assert.throws(() => habit.complete('2017-1-1'));
@@ -296,7 +210,9 @@ describe('Habit', function() {
       assert.throws(() => habit.complete('95-01-01'));
     });
   });
+  */
 
+/*
   describe('#isComplete()', function() {
     let completedHabit, incompleteHabit;
     before(function() {
@@ -341,9 +257,8 @@ describe('Habit', function() {
       assert.throws(() => habit.isComplete('2017-04-31'));
       assert.throws(() => habit.isComplete('2017-04-00'));
       assert.throws(() => habit.isComplete('2017-01-00'));
-      /* TODO: Find out if year 0000 is a thing
+      // TODO: Find out if year 0000 is a thing
       assert.throws(() => habit.isComplete('0000-12-01'));
-      */
       assert.throws(() => habit.isComplete('2017-01-1'));
       assert.throws(() => habit.isComplete('2017-1-01'));
       assert.throws(() => habit.isComplete('2017-1-1'));
@@ -351,7 +266,9 @@ describe('Habit', function() {
       assert.throws(() => habit.isComplete('95-01-01'));
     });
   });
+  */
 
+/*
   describe('#uncomplete()', function() {
     let completedHabit, incompleteHabit;
     beforeEach(function() {
@@ -434,9 +351,8 @@ describe('Habit', function() {
       assert.throws(() => habit.uncomplete('2017-04-31'));
       assert.throws(() => habit.uncomplete('2017-04-00'));
       assert.throws(() => habit.uncomplete('2017-01-00'));
-      /* TODO: Find out if year 0000 is a thing
+      // TODO: Find out if year 0000 is a thing
       assert.throws(() => habit.uncomplete('0000-12-01'));
-      */
       assert.throws(() => habit.uncomplete('2017-01-1'));
       assert.throws(() => habit.uncomplete('2017-1-01'));
       assert.throws(() => habit.uncomplete('2017-1-1'));
@@ -444,7 +360,9 @@ describe('Habit', function() {
       assert.throws(() => habit.uncomplete('95-01-01'));
     });
   });
+*/
 
+/*
   describe('database interaction helpers', function() {
     let habitOne, habitTwo, habitThree;
     let docOne, docTwo, docThree;
@@ -514,5 +432,6 @@ describe('Habit', function() {
       });
     });
   });
+  */
 
 });
