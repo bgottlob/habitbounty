@@ -1,56 +1,6 @@
-/* Check if we're on node; if so, we need to require stuff; if not, the
- * code was imported in the html with <script> tags*/
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
-  require('./sharedLib.js');
-
-/**
- * Checks whether a string represents a real date in ISO 8601 format.
- *
- * @param {string} dateStr the string to be validated
- * @returns {?error} an error if the date string is invalid, otherwise
- *   returns null
- */
-function validateDateStr(dateStr) {
-  let match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (match) {
-    // Use new Date to see if the string is a valid date by Date's standards
-    // Then, parse the date component out of the ISO date string and make sure
-    // it matches up properly to the original date string, since Date will
-    // interpret '2017-02-29' as March 1, 2017, even though Feb 29 2017 is not
-    // a real day
-    let date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      return new Error('date string does not represent a valid date');
-    } else {
-      if (dateStr === date.toISOString().split('T')[0])
-        return null;
-      else
-        return new Error('date string does not represent a valid date');
-    }
-  } else {
-    return new Error('date string must be in the format YYYY-MM-DD');
-  }
-}
-
-/**
- * Checks whether a number represents a number with two or fewer decimal
- * places in precision.
- *
- * @param {number} num the number to be validated
- * @returns {?error} an error if the number is not valid or more precise
- *   than two decimal places, otherwise returns null
- */
-// TODO: The error messaging could be smarter here
-function validateNumber(num) {
-  var digsAfterDec = 2; // Precision to enforce
-  if (isNaN(num) || typeof num !== 'number')
-    return new Error('not a valid number');
- // toFixed returns string, need != instead of !==
-  else if (num.toFixed(digsAfterDec) != num)
-    return new Error('amount ' + num + ' must be no more precise than ' +
-      digsAfterDec + ' digits after the decimal');
-  else return null;
-}
+module.exports = Habit;
+require('./sharedLib.js');
+const validate = require('./validate.js');
 
 /**
  * A single entry in the habit log. Represents an instance when a habit was
@@ -60,27 +10,6 @@ function validateNumber(num) {
  * @property {string} date the date the habit was completed
  * @property {number} amount the amount rewarded for completion of the habit
  */
-
-/**
- * Validate a LogEntry object. Ensure it contains a valid date, a valid amount,
- * and no extraneous elements.
- *
- * @param {LogEntry} entry the log entry to be validated
- * @returns {?error} an error if the log entry is invalid, null if not
- */
-function validateLogEntry(entry) {
-  let err = null;
-  if (err = validateNumber(entry.amount)) return err;
-  else if (err = validateDateStr(entry.date)) return err;
-  else {
-    // Check for extra data in the object
-    allowed = ['amount', 'date'];
-    extras = Object.keys(entry).filter((key) => allowed.indexOf(key) === -1);
-    if (extras.length > 0)
-      err = new Error('there are more attributes than just amount and date');
-    return err;
-  }
-}
 
 /**
  * Creates a new Habit object
@@ -99,10 +28,8 @@ function Habit(name, amount, log) {
     throw new Error('name parameter must be a valid string');
   else this.name = name;
 
-  // isNaN will return false for strings like '12', so must also check if the
-  // type is a number. NaN's type is 'number', so must check for NaN
-  if (err = validateNumber(amount))
-    throw new Error('amount must be a valid number');
+  if (err = validate.number(amount))
+    throw err;
   else
     this.amount = amount;
 
@@ -112,7 +39,7 @@ function Habit(name, amount, log) {
     throw new Error('log must be a valid array');
   else {
     for (let i = 0; i < log.length; i++) {
-      if (err = validateLogEntry(log[i])) throw err;
+      if (err = validate.logEntry(log[i])) throw err;
     }
     this.log = log;
   }
@@ -127,7 +54,7 @@ function Habit(name, amount, log) {
  *   not
  */
 Habit.prototype.isComplete = function(dateStr) {
-  let err = validateDateStr(dateStr);
+  let err = validate.dateStr(dateStr);
   if (err) throw err;
   return this.log.reduce((acc, current) => {
     return acc || current.date === dateStr;
@@ -158,7 +85,7 @@ Habit.prototype.complete = function(dateStr) {
  *   completed
  */
 Habit.prototype.uncomplete = function(dateStr) {
-  let err = validateDateStr(dateStr);
+  let err = validate.dateStr(dateStr);
   if (err) throw err;
   this.log = this.log.filter(function (fromLog) {
     return !(fromLog.date === dateStr);
@@ -191,7 +118,7 @@ Habit.prototype.toDoc = function() {
  * Creates a habit object from a habit document that was present in the CouchDB
  * database.
  * @param {object} doc the CouchDB doc to be converted to a Habit
- * @returns {Habit} the habit doc populated with the data from the doc
+ * @returns {Habit} the Habit object populated with the data from the doc
  */
 // TODO: Throw error if doc.type isn't "habit"?
 Habit.fromDoc = function(doc) {
@@ -206,8 +133,3 @@ Habit.fromDoc = function(doc) {
   return new Habit(doc.name, doc.amount, doc.log);
 }
 
-/* Support importing into browser or node */
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
-  module.exports = Habit;
-else
-  window.Habit = Habit;

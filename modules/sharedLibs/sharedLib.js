@@ -40,5 +40,3 @@ String.prototype.dateToArray = function() {
 Date.prototype.toLocalArray = function() {
   return [this.getFullYear(), this.getMonth(), this.getDate()]
 };
-
-

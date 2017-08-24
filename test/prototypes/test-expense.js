@@ -37,7 +37,7 @@ describe('Expense', function() {
       assert.throws(() => new Expense('Test', {amount: 2.45}));
     });
 
-    it('should throw an invalid date error in the log', function() {
+    it('should throw invalid date errors', function() {
       assert.throws(() => new Expense('Test', 2, '02/02/2017'));
       assert.throws(() => new Expense('Test', 2, 'Jun 15 2017'));
       assert.throws(() => new Expense('Test', 2, 'Feb 15 2017'));
@@ -54,6 +54,9 @@ describe('Expense', function() {
       assert.throws(() => new Expense('Test', 2, '2017-1-1'));
       assert.throws(() => new Expense('Test', 2, '17-01-01'));
       assert.throws(() => new Expense('Test', 2, '95-01-01'));
+      assert.throws(() => new Expense('Test', 2, 10));
+      assert.throws(() => new Expense('Test', 2, ['2017-01-01']));
+      assert.throws(() => new Expense('Test', 2, {date: '2017-01-01'}));
     });
 
     it('should create a expense that has not been charged yet', function() {
@@ -67,371 +70,242 @@ describe('Expense', function() {
       assert.strictEqual(expense.amount, 2.10);
       assert.strictEqual(expense.dateCharged, null);
 
-      expense = new Expense('Take a shower', 6);
-      assert.strictEqual(expense.name, 'Take a shower');
+      expense = new Expense('Lunch', 6);
+      assert.strictEqual(expense.name, 'Lunch');
       assert.strictEqual(expense.amount, 6);
       assert.strictEqual(expense.dateCharged, null);
     });
 
-    /*
-    it('should create a habit with the given log', function() {
-      let habit = new Habit('First Test', 2, []);
-      assert.strictEqual(habit.name, 'First Test');
-      assert.strictEqual(habit.amount, 2);
-      assert.deepStrictEqual(habit.log, []);
+    it('should create a charged expense', function() {
+      let expense = new Expense('First Test', 2, '2017-01-01');
+      assert.strictEqual(expense.name, 'First Test');
+      assert.strictEqual(expense.amount, 2);
+      assert.strictEqual(expense.dateCharged, '2017-01-01');
 
-      habit = new Habit('Second Test', 3, [
-        { amount: 2.20, date: '2017-01-29' },
-        { amount: 3, date: '2017-01-02' },
-        { amount: 3.21, date: '2017-01-01' }
-      ]);
-      assert.strictEqual(habit.name, 'Second Test');
-      assert.strictEqual(habit.amount, 3);
-      assert.deepStrictEqual(habit.log, [
-        { amount: 2.20, date: '2017-01-29' },
-        { amount: 3, date: '2017-01-02' },
-        { amount: 3.21, date: '2017-01-01' }
-      ]);
+      expense = new Expense('Second Test', 3, '2017-01-29');
+      assert.strictEqual(expense.name, 'Second Test');
+      assert.strictEqual(expense.amount, 3);
+      assert.strictEqual(expense.dateCharged, '2017-01-29');
 
-      habit = new Habit('Third Test', 2.01, [
-        { amount: 2.20, date: '2017-01-29' },
-        { amount: 3.21, date: '2017-01-01' }
-      ]);
-      assert.strictEqual(habit.name, 'Third Test');
-      assert.strictEqual(habit.amount, 2.01);
-      assert.deepStrictEqual(habit.log, [
-        { amount: 2.20, date: '2017-01-29' },
-        { amount: 3.21, date: '2017-01-01' }
-      ]);
+      expense = new Expense('Third Test', 4, '2017-01-02');
+      assert.strictEqual(expense.name, 'Third Test');
+      assert.strictEqual(expense.amount, 4);
+      assert.strictEqual(expense.dateCharged, '2017-01-02');
 
-      habit = new Habit('Fourth Test', 5.1, [
-        { amount: 3.1, date: '2017-01-02' },
-        { amount: 2.20, date: '2017-01-29' },
-        { amount: 3.21, date: '2017-01-01' }
-      ]);
-      assert.strictEqual(habit.name, 'Fourth Test');
-      assert.strictEqual(habit.amount, 5.1);
-      assert.deepStrictEqual(habit.log, [
-        { amount: 3.1, date: '2017-01-02' },
-        { amount: 2.20, date: '2017-01-29' },
-        { amount: 3.21, date: '2017-01-01' }
-      ]);
+      expense = new Expense('Fourth Test', 5, '2017-07-31');
+      assert.strictEqual(expense.name, 'Fourth Test');
+      assert.strictEqual(expense.amount, 5);
+      assert.strictEqual(expense.dateCharged, '2017-07-31');
+
     });
-    */
-
-    // TODO: More tests
-    //it('should eliminate duplicate date entries in the log only if they have the same reward')
-    //it('should sort the log by date?')
-    //it('should accept a leap year february date')
 
   });
 
-  /*
-  describe('#complete()', function() {
-    let habit;
+  describe('#charge()', function() {
+    let expense;
     beforeEach(function() {
-      habit = new Habit('Test Habit', 2.15)
+      expense = new Expense('Test Expense', 2.15)
     });
     afterEach(function() {
-      habit = null
+      expense = null
     });
 
-    it('should complete the habit with the given dates', function() {
-      habit.complete('2017-03-15');
-      assert.strictEqual(habit.name, 'Test Habit');
-      assert.strictEqual(habit.amount, 2.15);
-      assert.deepStrictEqual(habit.log, [{ amount: 2.15, date: '2017-03-15' }]);
+    it('should charge the expense with the date', function() {
+      expense.charge('2017-03-15');
+      assert.strictEqual(expense.name, 'Test Expense');
+      assert.strictEqual(expense.amount, 2.15);
+      assert.strictEqual(expense.dateCharged, '2017-03-15');
 
-      habit.complete('2017-02-15');
-      assert.strictEqual(habit.name, 'Test Habit');
-      assert.strictEqual(habit.amount, 2.15);
-      assert.deepStrictEqual(habit.log, [
-        { amount: 2.15, date: '2017-03-15' },
-        { amount: 2.15, date: '2017-02-15' }
-      ]);
-    });
+      expense.charge('2017-02-15');
+      assert.strictEqual(expense.name, 'Test Expense');
+      assert.strictEqual(expense.amount, 2.15);
+      assert.strictEqual(expense.dateCharged, '2017-02-15');
 
-    it('should change entry amount when the amount of the habit changes',
-      function() {
-        // Normal case
-        habit.complete('2017-03-15');
-        assert.strictEqual(habit.name, 'Test Habit');
-        assert.strictEqual(habit.amount, 2.15);
-        assert.deepStrictEqual(habit.log, [{amount: 2.15, date: '2017-03-15'}]);
+      expense.uncharge();
+      assert.strictEqual(expense.name, 'Test Expense');
+      assert.strictEqual(expense.amount, 2.15);
+      assert.strictEqual(expense.dateCharged, null);
 
-        // Change amount and then complete
-        habit.amount = 4;
-        habit.complete('2017-04-15');
-        assert.strictEqual(habit.name, 'Test Habit');
-        assert.strictEqual(habit.amount, 4);
-        assert.deepStrictEqual(habit.log, [
-          { amount: 2.15, date: '2017-03-15' },
-          { amount: 4, date: '2017-04-15' }
-        ]);
-      }
-    );
-
-    // Test for completing for a date, then edit amount, then complete for the same date -- should not change anything on the second complete
-
-    it('should ignore duplicate dates', function() {
-      habit.complete('2017-03-15');
-      assert.strictEqual(habit.name, 'Test Habit');
-      assert.strictEqual(habit.amount, 2.15);
-      assert.deepStrictEqual(habit.log, [{ amount: 2.15, date: '2017-03-15' }]);
-
-      // Ignore duplicate dates
-      habit.complete('2017-03-15');
-      assert.strictEqual(habit.name, 'Test Habit');
-      assert.strictEqual(habit.amount, 2.15);
-      assert.deepStrictEqual(habit.log, [{ amount: 2.15, date: '2017-03-15' }]);
-
-      // Ignore one more for good measures
-      habit.complete('2017-03-15');
-      assert.strictEqual(habit.name, 'Test Habit');
-      assert.strictEqual(habit.amount, 2.15);
-      assert.deepStrictEqual(habit.log, [{ amount: 2.15, date: '2017-03-15' }]);
+      expense.charge('2017-12-31');
+      assert.strictEqual(expense.name, 'Test Expense');
+      assert.strictEqual(expense.amount, 2.15);
+      assert.strictEqual(expense.dateCharged, '2017-12-31');
     });
 
     it('should throw an invalid date error', function() {
-      assert.throws(() => habit.complete('02/02/2017'));
-      assert.throws(() => habit.complete('Jun 15 2017'));
-      assert.throws(() => habit.complete('Feb 15 2017'));
-      assert.throws(() => habit.complete('2017-13-01'));
-      assert.throws(() => habit.complete('2017-02-29'));
-      assert.throws(() => habit.complete('2017-04-31'));
-      assert.throws(() => habit.complete('2017-04-00'));
-      assert.throws(() => habit.complete('2017-01-00'));
-      // TODO: Find out if year 0000 is a thing
-      assert.throws(() => habit.complete('0000-12-01'));
-      assert.throws(() => habit.complete('2017-01-1'));
-      assert.throws(() => habit.complete('2017-1-01'));
-      assert.throws(() => habit.complete('2017-1-1'));
-      assert.throws(() => habit.complete('17-01-01'));
-      assert.throws(() => habit.complete('95-01-01'));
+      assert.throws(() => expense.charge('02/02/2017'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('Jun 15 2017'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('Feb 15 2017'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('2017-13-01'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('2017-02-29'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('2017-04-31'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('2017-04-00'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('2017-01-00'));
+      assert.strictEqual(expense.dateCharged, null);
+      /* TODO: is year 0000 a thing?
+      assert.throws(() => expense.charge('0000-12-01'));
+      */
+      assert.throws(() => expense.charge('2017-01-1'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('2017-1-01'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('2017-1-1'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('17-01-01'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge('95-01-01'));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge(null));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge(undefined));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge(NaN));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge(10));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge(['2017-01-01']));
+      assert.strictEqual(expense.dateCharged, null);
+      assert.throws(() => expense.charge({date: '2017-01-01'}));
+      assert.strictEqual(expense.dateCharged, null);
     });
+
   });
-  */
 
-/*
-  describe('#isComplete()', function() {
-    let completedHabit, incompleteHabit;
-    before(function() {
-      completedHabit = new Habit('Completed Habit', 2, [
-        { amount: 2, date: '2017-01-01' },
-        { amount: 2, date: '2016-01-01' },
-        { amount: 2, date: '2017-03-15' },
-        { amount: 2, date: '2017-12-31' }
-      ]);
-      incompleteHabit = new Habit('Incomplete Habit', 2);
-    });
-    after(function() {
-      completedHabit = null;
-      incompleteHabit = null;
-    });
-
-    it('should find the habit is complete on the given dates', function() {
-      assert.strictEqual(completedHabit.isComplete('2017-01-01'), true);
-      assert.strictEqual(completedHabit.isComplete('2016-01-01'), true);
-      assert.strictEqual(completedHabit.isComplete('2017-03-15'), true);
-      assert.strictEqual(completedHabit.isComplete('2017-12-31'), true);
-    });
-
-    it('should find the habit is not complete on the given dates', function() {
-      assert.strictEqual(incompleteHabit.isComplete('2017-01-01'), false);
-      assert.strictEqual(incompleteHabit.isComplete('2016-01-01'), false);
-      assert.strictEqual(incompleteHabit.isComplete('2017-03-15'), false);
-      assert.strictEqual(incompleteHabit.isComplete('2017-12-31'), false);
-
-      assert.strictEqual(completedHabit.isComplete('2016-12-31'), false);
-      assert.strictEqual(completedHabit.isComplete('2016-02-01'), false);
-      assert.strictEqual(completedHabit.isComplete('2017-03-16'), false);
-      assert.strictEqual(completedHabit.isComplete('2017-12-30'), false);
-    });
-
-    it('should throw an invalid date error', function() {
-      assert.throws(() => habit.isComplete('02/02/2017'));
-      assert.throws(() => habit.isComplete('Jun 15 2017'));
-      assert.throws(() => habit.isComplete('Feb 15 2017'));
-      assert.throws(() => habit.isComplete('2017-13-01'));
-      assert.throws(() => habit.isComplete('2017-02-29'));
-      assert.throws(() => habit.isComplete('2017-04-31'));
-      assert.throws(() => habit.isComplete('2017-04-00'));
-      assert.throws(() => habit.isComplete('2017-01-00'));
-      // TODO: Find out if year 0000 is a thing
-      assert.throws(() => habit.isComplete('0000-12-01'));
-      assert.throws(() => habit.isComplete('2017-01-1'));
-      assert.throws(() => habit.isComplete('2017-1-01'));
-      assert.throws(() => habit.isComplete('2017-1-1'));
-      assert.throws(() => habit.isComplete('17-01-01'));
-      assert.throws(() => habit.isComplete('95-01-01'));
-    });
-  });
-  */
-
-/*
-  describe('#uncomplete()', function() {
-    let completedHabit, incompleteHabit;
+  describe('#uncharge()', function() {
+    let expense;
     beforeEach(function() {
-      completedHabit = new Habit('Completed Habit', 2, [
-        { amount: 2, date: '2017-01-01' },
-        { amount: 2, date: '2016-01-01' },
-        { amount: 2, date: '2017-03-15' },
-        { amount: 2, date: '2017-12-31' }
-      ]);
-      incompleteHabit = new Habit('Incomplete Habit', 2);
+      expense = new Expense('Test Expense', 2);
     });
     afterEach(function() {
-      completedHabit = null;
-      incompleteHabit = null;
+      expense = null;
     });
 
-    it('should remove log entries from the habit', function() {
-      assert.deepStrictEqual(completedHabit.log, [
-        { amount: 2, date: '2017-01-01' },
-        { amount: 2, date: '2016-01-01' },
-        { amount: 2, date: '2017-03-15' },
-        { amount: 2, date: '2017-12-31' }
-      ]);
-      completedHabit.uncomplete('2017-03-15');
-      assert.deepStrictEqual(completedHabit.log, [
-        { amount: 2, date: '2017-01-01' },
-        { amount: 2, date: '2016-01-01' },
-        { amount: 2, date: '2017-12-31' }
-      ]);
-      completedHabit.uncomplete('2017-12-31');
-      assert.deepStrictEqual(completedHabit.log, [
-        { amount: 2, date: '2017-01-01' },
-        { amount: 2, date: '2016-01-01' },
-      ]);
-      completedHabit.uncomplete('2017-01-01');
-      assert.deepStrictEqual(completedHabit.log, [
-        { amount: 2, date: '2016-01-01' }
-      ]);
-      completedHabit.uncomplete('2016-01-01');
-      assert.deepStrictEqual(completedHabit.log, []);
-    });
+    it('should set the date charged to null', function() {
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
 
-    it('should not remove log entries from the habit', function() {
-      completedHabit.uncomplete('2017-02-01');
-      assert.deepStrictEqual(completedHabit.log, [
-        { amount: 2, date: '2017-01-01' },
-        { amount: 2, date: '2016-01-01' },
-        { amount: 2, date: '2017-03-15' },
-        { amount: 2, date: '2017-12-31' }
-      ]);
-      completedHabit.uncomplete('2016-12-31');
-      assert.deepStrictEqual(completedHabit.log, [
-        { amount: 2, date: '2017-01-01' },
-        { amount: 2, date: '2016-01-01' },
-        { amount: 2, date: '2017-03-15' },
-        { amount: 2, date: '2017-12-31' }
-      ]);
-      completedHabit.uncomplete('2016-01-02');
-      assert.deepStrictEqual(completedHabit.log, [
-        { amount: 2, date: '2017-01-01' },
-        { amount: 2, date: '2016-01-01' },
-        { amount: 2, date: '2017-03-15' },
-        { amount: 2, date: '2017-12-31' }
-      ]);
+      expense.charge('2017-02-01');
+      assert.strictEqual(expense.dateCharged, '2017-02-01');
 
-      incompleteHabit.uncomplete('2017-02-01');
-      assert.deepStrictEqual(incompleteHabit.log, []);
-      incompleteHabit.uncomplete('2017-12-31');
-      assert.deepStrictEqual(incompleteHabit.log, []);
-      incompleteHabit.uncomplete('2017-01-02');
-      assert.deepStrictEqual(incompleteHabit.log, []);
-    });
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
 
-    it('should throw an invalid date error', function() {
-      assert.throws(() => habit.uncomplete('02/02/2017'));
-      assert.throws(() => habit.uncomplete('Jun 15 2017'));
-      assert.throws(() => habit.uncomplete('Feb 15 2017'));
-      assert.throws(() => habit.uncomplete('2017-13-01'));
-      assert.throws(() => habit.uncomplete('2017-02-29'));
-      assert.throws(() => habit.uncomplete('2017-04-31'));
-      assert.throws(() => habit.uncomplete('2017-04-00'));
-      assert.throws(() => habit.uncomplete('2017-01-00'));
-      // TODO: Find out if year 0000 is a thing
-      assert.throws(() => habit.uncomplete('0000-12-01'));
-      assert.throws(() => habit.uncomplete('2017-01-1'));
-      assert.throws(() => habit.uncomplete('2017-1-01'));
-      assert.throws(() => habit.uncomplete('2017-1-1'));
-      assert.throws(() => habit.uncomplete('17-01-01'));
-      assert.throws(() => habit.uncomplete('95-01-01'));
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
+
+      expense.charge('2017-01-01');
+      assert.strictEqual(expense.dateCharged, '2017-01-01');
+
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
+
+      expense.charge('2017-10-25');
+      assert.strictEqual(expense.dateCharged, '2017-10-25');
+
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
     });
   });
-*/
 
-/*
+  describe('#charged()', function() {
+    let expense;
+    beforeEach(function() {
+      expense = new Expense('Test Expense', 2);
+    });
+    afterEach(function() {
+      expense = null;
+    });
+
+    it('should indicate whether the expense has been charged', function() {
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
+      assert.strictEqual(expense.charged(), false);
+
+      expense.charge('2017-02-01');
+      assert.strictEqual(expense.dateCharged, '2017-02-01');
+      assert.strictEqual(expense.charged(), true);
+
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
+      assert.strictEqual(expense.charged(), false);
+
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
+      assert.strictEqual(expense.charged(), false);
+
+      expense.charge('2017-01-01');
+      assert.strictEqual(expense.dateCharged, '2017-01-01');
+      assert.strictEqual(expense.charged(), true);
+
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
+      assert.strictEqual(expense.charged(), false);
+
+      expense.charge('2017-10-25');
+      assert.strictEqual(expense.dateCharged, '2017-10-25');
+      assert.strictEqual(expense.charged(), true);
+
+      expense.uncharge();
+      assert.strictEqual(expense.dateCharged, null);
+      assert.strictEqual(expense.charged(), false);
+    });
+  });
+
   describe('database interaction helpers', function() {
-    let habitOne, habitTwo, habitThree;
+    let expenseOne, expenseTwo, expenseThree;
     let docOne, docTwo, docThree;
     beforeEach(function() {
-      habitOne = new Habit('First Habit', 1);
+      expenseOne = new Expense('First Expense', 1);
       docOne = {
-        name: 'First Habit',
+        name: 'First Expense',
         amount: 1,
-        log: [],
-        type: 'habit'
+        dateCharged: null,
+        type: 'expense'
       };
 
-      habitTwo = new Habit('Second Habit', 2.54, [
-        { amount: 2.54, date: '2017-01-01' },
-        { amount: 2.54, date: '2016-12-31' },
-        { amount: 2.54, date: '2017-03-15' },
-        { amount: 2.54, date: '2017-11-25' }
-      ]);
+      expenseTwo = new Expense('Second Expense', 2.54, '2016-12-31');
       docTwo = {
-        name: 'Second Habit',
+        name: 'Second Expense',
         amount: 2.54,
-        log: [
-          { amount: 2.54, date: [2017, 1, 1] },
-          { amount: 2.54, date: [2016, 12, 31] },
-          { amount: 2.54, date: [2017, 3, 15] },
-          { amount: 2.54, date: [2017, 11, 25] }
-        ],
-        type: 'habit'
+        dateCharged: [2016, 12, 31],
+        type: 'expense'
       };
 
-      habitThree = new Habit('Third Habit', 2, [
-        { amount: 2.4, date: '2017-04-01' },
-        { amount: 2.87, date: '2017-04-02' },
-        { amount: 3, date: '2017-03-31' },
-        { amount: 1, date: '2016-02-29' }
-      ]);
+      expenseThree = new Expense('Third Expense', 2,'2017-04-01');
       docThree = {
-        name: 'Third Habit',
+        name: 'Third Expense',
         amount: 2,
-        log: [
-          { amount: 2.4, date: [2017, 4, 1] },
-          { amount: 2.87, date: [2017, 4, 2] },
-          { amount: 3, date: [2017, 3, 31] },
-          { amount: 1, date: [2016, 2, 29] }
-        ],
-        type: 'habit'
+        dateCharged: [2017, 4, 1],
+        type: 'expense'
       };
     });
     afterEach(function() {
-      habitOne = habitTwo = habitThree = null;
+      expenseOne = expenseTwo = expenseThree = null;
       docOne = docTwo = docThree = null;
     });
 
     describe('#toDoc()', function() {
-      it('should convert habits to CouchDB friendly docs', function() {
-        assert.deepStrictEqual(habitOne.toDoc(), docOne);
-        assert.deepStrictEqual(habitTwo.toDoc(), docTwo);
-        assert.deepStrictEqual(habitThree.toDoc(), docThree);
+      it('should convert expenses to CouchDB friendly docs', function() {
+        assert.deepStrictEqual(expenseOne.toDoc(), docOne);
+        assert.deepStrictEqual(expenseTwo.toDoc(), docTwo);
+        assert.deepStrictEqual(expenseThree.toDoc(), docThree);
       });
     });
 
     describe('#fromDoc()', function() {
-      it('should convert CouchDB docs into habits', function() {
-        assert.deepStrictEqual(Habit.fromDoc(docOne), habitOne);
-        assert.deepStrictEqual(Habit.fromDoc(docTwo), habitTwo);
-        assert.deepStrictEqual(Habit.fromDoc(docThree), habitThree);
+      it('should convert CouchDB docs into expenses', function() {
+        assert.deepStrictEqual(Expense.fromDoc(docOne), expenseOne);
+        assert.deepStrictEqual(Expense.fromDoc(docTwo), expenseTwo);
+        assert.deepStrictEqual(Expense.fromDoc(docThree), expenseThree);
       });
     });
   });
-  */
 
 });
