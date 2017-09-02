@@ -1,11 +1,6 @@
+/** @module validate */
 /* A module of functions that is to be shared among front-end and back-end code.
  * These functions can be used to validate commonly used data types. */
-let validate = {};
-/** @module validate */
-// TODO: get all functions doc-ed here
-module.exports = {
-  number: number
-};
 
 /**
  * Checks whether a string represents a real date in ISO 8601 format.
@@ -14,7 +9,7 @@ module.exports = {
  * @returns {?error} an error if the date string is invalid, otherwise
  *   returns null
  */
-validate.dateStr = function(dateStr) {
+module.exports.dateStr = function(dateStr) {
   let match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (match) {
     // Use new Date to see if the string is a valid date by Date's standards
@@ -34,10 +29,9 @@ validate.dateStr = function(dateStr) {
   } else {
     return new Error('date string must be in the format YYYY-MM-DD');
   }
-}
+};
 
 /**
- * module:validate~number
  * Checks whether a number represents a number with two or fewer decimal
  * places in precision.
  *
@@ -46,8 +40,7 @@ validate.dateStr = function(dateStr) {
  *   than two decimal places, otherwise returns null
  */
 // TODO: The error messaging could be smarter here
-//validate.number = function(num) {
-function number(num) {
+module.exports.number = function(num) {
   var digsAfterDec = 2; // Precision to enforce
   // isNaN will return false for strings like '12', so must also check if the
   // type is a number. NaN's type is 'number', so must check for NaN
@@ -58,7 +51,7 @@ function number(num) {
     return new Error('amount ' + num + ' must be no more precise than ' +
       digsAfterDec + ' digits after the decimal');
   else return null;
-}
+};
 
 /**
  * Validate a LogEntry object. Ensure it contains a valid date, a valid amount,
@@ -67,10 +60,10 @@ function number(num) {
  * @param {LogEntry} entry the log entry to be validated
  * @returns {?error} an error if the log entry is invalid, null if not
  */
-validate.logEntry = function(entry) {
+module.exports.logEntry = function(entry) {
   let err = null;
-  if (err = validate.number(entry.amount)) return err;
-  else if (err = validate.dateStr(entry.date)) return err;
+  if (err = this.number(entry.amount)) return err;
+  else if (err = this.dateStr(entry.date)) return err;
   else {
     // Check for extra data in the object
     allowed = ['amount', 'date'];
@@ -79,4 +72,4 @@ validate.logEntry = function(entry) {
       err = new Error('there are more attributes than just amount and date');
     return err;
   }
-}
+};

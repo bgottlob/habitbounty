@@ -1,13 +1,39 @@
-/* Import the shared library on both server and client sides */
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
-  require('./sharedLib.js');
+require('./sharedLib');
+const validate = require('./validate');
 
+module.exports = Task;
+
+/**
+ * Creates a new Task object
+ * @constructs Task
+ * @param {string} name the name of the new task
+ * @param {number} amount the amount of money rewarded to the user when the
+ *   task is completed
+ * @param {string} [dateCompleted=null] the date the task was completed, if it
+ *   has been completed
+ * @returns {Task} the newly created task
+ */
 function Task(name, amount, dateCompleted) {
-  this.name = String(name);
-  this.amount = Number(amount);
+  let err = null;
 
-  if (dateCompleted) this.dateCompleted = dateCompleted;
-  else this.dateCompleted = null;
+  if (typeof name !== 'string')
+    throw new Error('name parameter must be a valid string');
+  else
+    this.name = String(name);
+
+  if (err = validate.number(amount))
+    throw err;
+  else
+    this.amount = Number(amount);
+
+  if (dateCompleted) {
+    if (err = validate.dateStr(dateCompleted))
+      throw err;
+    else
+      this.dateCompleted = dateCompleted;
+  }
+  else
+    this.dateCompleted = null;
 }
 
 Task.prototype.toDoc = function() {
@@ -30,7 +56,8 @@ Task.fromDoc = function(doc) {
 }
 
 Task.prototype.complete = function(dateStr) {
-  this.dateCompleted = dateStr;
+  if (err = validate.dateStr(dateStr)) throw err;
+  else this.dateCompleted = dateStr;
 };
 
 Task.prototype.uncomplete = function() {
@@ -40,9 +67,3 @@ Task.prototype.uncomplete = function() {
 Task.prototype.completed = function() {
   return !!this.dateCompleted;
 };
-
-/* Support importing into browser or node */
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined')
-  module.exports = Task;
-else
-  window.Task = Task;
