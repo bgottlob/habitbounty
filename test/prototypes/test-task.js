@@ -215,95 +215,95 @@ describe('Task', function() {
   });
 
   describe('#charged()', function() {
-    let expense;
+    let task;
     beforeEach(function() {
-      expense = new Expense('Test Expense', 2);
+      task = new Task('Test Task', 2);
     });
     afterEach(function() {
-      expense = null;
+      task = null;
     });
 
-    it('should indicate whether the expense has been charged', function() {
-      expense.uncharge();
-      assert.strictEqual(expense.dateCharged, null);
-      assert.strictEqual(expense.charged(), false);
+    it('should indicate whether the task has been completed', function() {
+      task.uncomplete();
+      assert.strictEqual(task.dateCompleted, null);
+      assert.strictEqual(task.completed(), false);
 
-      expense.charge('2017-02-01');
-      assert.strictEqual(expense.dateCharged, '2017-02-01');
-      assert.strictEqual(expense.charged(), true);
+      task.complete('2017-02-01');
+      assert.strictEqual(task.dateCompleted, '2017-02-01');
+      assert.strictEqual(task.completed(), true);
 
-      expense.uncharge();
-      assert.strictEqual(expense.dateCharged, null);
-      assert.strictEqual(expense.charged(), false);
+      task.uncomplete();
+      assert.strictEqual(task.dateCompleted, null);
+      assert.strictEqual(task.completed(), false);
 
-      expense.uncharge();
-      assert.strictEqual(expense.dateCharged, null);
-      assert.strictEqual(expense.charged(), false);
+      task.uncomplete();
+      assert.strictEqual(task.dateCompleted, null);
+      assert.strictEqual(task.completed(), false);
 
-      expense.charge('2017-01-01');
-      assert.strictEqual(expense.dateCharged, '2017-01-01');
-      assert.strictEqual(expense.charged(), true);
+      task.complete('2017-01-01');
+      assert.strictEqual(task.dateCompleted, '2017-01-01');
+      assert.strictEqual(task.completed(), true);
 
-      expense.uncharge();
-      assert.strictEqual(expense.dateCharged, null);
-      assert.strictEqual(expense.charged(), false);
+      task.uncomplete();
+      assert.strictEqual(task.dateCompleted, null);
+      assert.strictEqual(task.completed(), false);
 
-      expense.charge('2017-10-25');
-      assert.strictEqual(expense.dateCharged, '2017-10-25');
-      assert.strictEqual(expense.charged(), true);
+      task.complete('2017-10-25');
+      assert.strictEqual(task.dateCompleted, '2017-10-25');
+      assert.strictEqual(task.completed(), true);
 
-      expense.uncharge();
-      assert.strictEqual(expense.dateCharged, null);
-      assert.strictEqual(expense.charged(), false);
+      task.uncomplete();
+      assert.strictEqual(task.dateCompleted, null);
+      assert.strictEqual(task.completed(), false);
     });
   });
 
   describe('database interaction helpers', function() {
-    let expenseOne, expenseTwo, expenseThree;
+    let taskOne, taskTwo, taskThree;
     let docOne, docTwo, docThree;
     beforeEach(function() {
-      expenseOne = new Expense('First Expense', 1);
+      taskOne = new Task('First Task', 1);
       docOne = {
-        name: 'First Expense',
+        name: 'First Task',
         amount: 1,
-        dateCharged: null,
-        type: 'expense'
+        dateCompleted: null,
+        type: 'task'
       };
 
-      expenseTwo = new Expense('Second Expense', 2.54, '2016-12-31');
+      taskTwo = new Task('Second Task', 2.54, '2016-12-31');
       docTwo = {
-        name: 'Second Expense',
+        name: 'Second Task',
         amount: 2.54,
-        dateCharged: [2016, 12, 31],
-        type: 'expense'
+        dateCompleted: [2016, 12, 31],
+        type: 'task'
       };
 
-      expenseThree = new Expense('Third Expense', 2,'2017-04-01');
+      taskThree = new Task('Third Task', 2,'2017-04-01');
       docThree = {
-        name: 'Third Expense',
+        name: 'Third Task',
         amount: 2,
-        dateCharged: [2017, 4, 1],
-        type: 'expense'
+        dateCompleted: [2017, 4, 1],
+        type: 'task'
       };
     });
     afterEach(function() {
-      expenseOne = expenseTwo = expenseThree = null;
+      taskOne = taskTwo = taskThree = null;
       docOne = docTwo = docThree = null;
     });
 
     describe('#toDoc()', function() {
-      it('should convert expenses to CouchDB friendly docs', function() {
-        assert.deepStrictEqual(expenseOne.toDoc(), docOne);
-        assert.deepStrictEqual(expenseTwo.toDoc(), docTwo);
-        assert.deepStrictEqual(expenseThree.toDoc(), docThree);
+      it('should convert tasks to CouchDB friendly docs', function() {
+        assert.deepStrictEqual(taskOne.toDoc(), docOne);
+        assert.deepStrictEqual(taskTwo.toDoc(), docTwo);
+        assert.deepStrictEqual(taskThree.toDoc(), docThree);
       });
     });
 
     describe('#fromDoc()', function() {
-      it('should convert CouchDB docs into expenses', function() {
-        assert.deepStrictEqual(Expense.fromDoc(docOne), expenseOne);
-        assert.deepStrictEqual(Expense.fromDoc(docTwo), expenseTwo);
-        assert.deepStrictEqual(Expense.fromDoc(docThree), expenseThree);
+      it('should convert CouchDB docs into tasks', function() {
+        assert.deepStrictEqual(Task.fromDoc(docOne), taskOne);
+        assert.deepStrictEqual(Task.fromDoc(docTwo), taskTwo);
+        assert.deepStrictEqual(Task.fromDoc(docThree), taskThree);
       });
     });
   });
