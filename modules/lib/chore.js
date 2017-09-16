@@ -1,6 +1,6 @@
 module.exports = Chore;
-require('./sharedLib.js');
-const validate = require('./validate.js');
+require('lib/sharedLib');
+const validate = require('lib/validate');
 
 // TODO: At some point it may be necessary to have actual differences between
 // the habit proto's log entry format and that of the chore proto
