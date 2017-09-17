@@ -1,10 +1,10 @@
 let loader = module.exports;
 
-const Habit = require('./sharedLibs/habit.js');
-const Balance = require('./sharedLibs/balance.js');
-const Expense = require('./sharedLibs/expense.js');
-const Chore = require('./sharedLibs/chore.js');
-const Task = require('./sharedLibs/task.js');
+const Habit = require('lib/habit');
+const Balance = require('lib/balance');
+const Expense = require('lib/expense');
+const Chore = require('lib/chore');
+const Task = require('lib/task');
 
 let url, dbName;
 if (!(url = process.env.COUCH_HOST)) url = 'http://localhost:5984';

@@ -6,7 +6,7 @@ const simpleGET = helpers.simpleGET;
 const respondBadReq = helpers.respondBadReq;
 const validateRequest = helpers.validateRequest;
 
-const Task = require('../modules/sharedLibs/task');
+const Task = require('lib/task');
 
 let router = module.exports = new Router();
 
