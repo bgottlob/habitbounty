@@ -6,7 +6,7 @@ const simpleGET = helpers.simpleGET;
 const respondBadReq = helpers.respondBadReq;
 const validateRequest = helpers.validateRequest;
 
-const Chore = require('../modules/sharedLibs/chore');
+const Chore = require('lib/chore');
 
 let router = module.exports = new Router();
 

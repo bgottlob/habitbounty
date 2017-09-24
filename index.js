@@ -3,8 +3,8 @@ const ecstatic =  require('ecstatic');
 const loader = require('./modules/dataLoader.js');
 const Router = require('./modules/router.js')
 const templateHandler = require('./modules/templateHandler.js');
-const Balance = require('./modules/sharedLibs/balance.js');
-require('./modules/sharedLibs/sharedLib.js');
+const Balance = require('lib/balance');
+require('lib/sharedLib');
 
 const helpers = require('./modules/routeHelpers');
 const simpleGET = helpers.simpleGET;
@@ -19,7 +19,8 @@ let fileServer = ecstatic({root: __dirname + '/public'});
 let nodeModServer = ecstatic({root: __dirname + '/node_modules'});
 
 /* For serving files that are shared between server and client code */
-let sharedLibServer = ecstatic({root: __dirname + '/modules/sharedLibs'});
+//TODO: Remove this
+//let sharedLibServer = ecstatic({root: __dirname + lib'});
 
 /* Compile and serve the client for the home page, a list of all habits
  * in the system */
@@ -54,12 +55,14 @@ router.add('GET', /^\/lib\/(.+)$/, function (request, response, filename) {
     nodeModServer(request, response);
 });
 
+// TODO: I think I can remove this, once I can confirm everything is working
+// with browserify
 /* Serve a file that is shared by both client and server code filenames sent
  * to this route must be relative to /modules/sharedLibs */
-router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename) {
-  request.url = '/' + filename;
-  sharedLibServer(request, response);
-});
+//router.add('GET', /^\/shared-lib\/(.+)$/, function (request, response, filename) {
+//  request.url = '/' + filename;
+//  sharedLibServer(request, response);
+//});
 
 router.routes = router.routes.concat(
   require('./routes/habitRoutes').routes,

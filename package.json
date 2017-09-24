@@ -16,9 +16,11 @@
     "ecstatic": "^2.1.0",
     "handlebars": "^4.0.5",
     "milligram": "^1.2.0",
-    "nano": "^6.2.0"
+    "nano": "^6.2.0",
+    "lib": "file:./modules/lib"
   },
   "devDependencies": {
-    "mocha": "^3.2.0"
+    "chai": "^4.0.2",
+    "mocha": "^3.4.2"
   }
 }
