@@ -1,6 +1,6 @@
 module.exports = Habit;
-require('./sharedLib.js');
-const validate = require('./validate.js');
+require('lib/sharedLib');
+const validate = require('lib/validate');
 
 /**
  * A single entry in the habit log. Represents an instance when a habit was

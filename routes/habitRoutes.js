@@ -6,7 +6,7 @@ const simpleGET = helpers.simpleGET;
 const respondBadReq = helpers.respondBadReq;
 const validateRequest = helpers.validateRequest;
 
-const Habit = require('../modules/sharedLibs/habit');
+const Habit = require('lib/habit');
 
 let router = module.exports = new Router();
 

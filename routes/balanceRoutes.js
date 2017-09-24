@@ -6,7 +6,7 @@ const simpleGET = helpers.simpleGET;
 const respondBadReq = helpers.respondBadReq;
 const validateRequest = helpers.validateRequest;
 
-const Balance = require('../modules/sharedLibs/balance');
+const Balance = require('lib/balance');
 
 let router = module.exports = new Router();
 
@@ -18,10 +18,12 @@ router.add('GET', /^\/balance$/, function (request, response) {
 /* TODO: FIX THIS -- A REV MUST BE USED HERE TO CONTROL CONCURRENCY */
 router.add('POST', /^\/change-balance$/, function (request, response) {
   const body = request.body;
+  console.log(body);
   const invalidMsg = validateRequest(body, ['amount'], null, (b) => {
     if (isNaN(b.amount)) return 'amount must be a valid number';
   });
   if (invalidMsg) {
+    console.log('it is invalid!!!!');
     respondBadReq(response, invalidMsg);
   } else {
     loader.getDoc('balance').then(function (doc) {

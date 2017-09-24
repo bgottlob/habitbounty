@@ -1,5 +1,5 @@
-require('./sharedLib');
-const validate = require('./validate');
+require('lib/sharedLib');
+const validate = require('lib/validate');
 
 module.exports = Task;
 

@@ -1,5 +1,5 @@
 const assert = require('assert');
-const Expense = require('../../modules/sharedLibs/expense');
+const Expense = require('lib/expense');
 
 describe('Expense', function() {
 

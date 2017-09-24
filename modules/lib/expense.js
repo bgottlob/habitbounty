@@ -1,6 +1,6 @@
 /* Import the shared library on both server and client sides */
-require('./sharedLib');
-const validate = require('./validate');
+require('lib/sharedLib');
+const validate = require('lib/validate');
 
 module.exports = Expense;
 

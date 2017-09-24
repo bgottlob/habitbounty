@@ -6,7 +6,7 @@ const simpleGET = helpers.simpleGET;
 const respondBadReq = helpers.respondBadReq;
 const validateRequest = helpers.validateRequest;
 
-const Expense = require('../modules/sharedLibs/expense');
+const Expense = require('lib/expense');
 
 let router = module.exports = new Router();
 

@@ -1,5 +1,5 @@
 const assert = require('assert');
-const Chore = require('../../modules/sharedLibs/chore');
+const Chore = require('lib/chore');
 
 describe('Chore', function() {
 

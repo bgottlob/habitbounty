@@ -1,5 +1,5 @@
 const assert = require('assert');
-const Habit = require('../../modules/sharedLibs/habit');
+const Habit = require('lib/habit');
 
 describe('Habit', function() {
 

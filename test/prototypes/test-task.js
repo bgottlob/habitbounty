@@ -1,5 +1,5 @@
 const assert = require('assert');
-const Task = require('../../modules/sharedLibs/task');
+const Task = require('lib/task');
 
 describe('Task', function() {
 
